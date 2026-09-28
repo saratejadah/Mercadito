@@ -605,7 +605,8 @@
         <form id="form-item" class="pila" autocomplete="off">
           <input id="item-nombre" required placeholder="¿Qué hace falta? 🥑" aria-label="Producto">
           <!-- Pastillas de categoría (se llenan desde CATEGORIAS) -->
-          <div id="chips-categoria" class="chips" role="radiogroup" aria-label="Categoría"></div>
+          <!-- Escondidas hasta que se empieza a escribir un producto -->
+          <div id="chips-categoria" class="chips" role="radiogroup" aria-label="Categoría" hidden></div>
           <button class="boton" type="submit">＋ Agregar a la lista</button>
         </form>
       </details>
@@ -1023,8 +1024,14 @@
       dibujarChips();
     });
 
+    // Las categorías solo aparecen cuando hay algo escrito (así la tarjeta ocupa menos espacio)
+    function mostrarChipsSiHayTexto() {
+      document.getElementById("chips-categoria").hidden = !document.getElementById("item-nombre").value.trim();
+    }
+
     // Mientras se escribe el nombre, se sugiere la categoría automáticamente
     document.getElementById("item-nombre").addEventListener("input", e => {
+      mostrarChipsSiHayTexto();
       if (categoriaTocada) return;
       const sugerida = adivinarCategoria(e.target.value);
       if (sugerida !== categoriaElegida) {
@@ -1154,6 +1161,7 @@
       categoriaElegida = "Otros";
       categoriaTocada = false;
       dibujarChips();
+      mostrarChipsSiHayTexto(); // el campo quedó vacío: esconder las categorías
       campoNombre.focus();
     });
 
