@@ -479,8 +479,13 @@
       border: 2px solid var(--menta-texto);
     }
     .receta-botones .boton.rosa { border-color: var(--rosa-texto); }
+    .receta-botones .boton.lila { border-color: #8f7fd9; color: #6a58c4; }
     .receta-botones .boton:active { background: var(--menta); }
     .receta-botones .boton.rosa:active { background: var(--rosa); }
+    .receta-botones .boton.lila:active { background: var(--lavanda); }
+    /* Botón "Cancelar" al editar una receta */
+    .boton.suave-gris { background: var(--lavanda); color: var(--texto-suave); }
+    .boton.suave-gris:active { background: var(--lavanda-borde); }
 
     /* Formulario de receta nueva (se abre y cierra) */
     /* Solo el botón, sin caja alrededor */
@@ -617,8 +622,9 @@
 
     <!-- ===================== SECCIÓN 2: RECETAS ===================== -->
     <section id="recetas" hidden>
-      <details class="tarjeta nueva">
-        <summary>＋ Agregar receta nueva</summary>
+      <!-- El mismo formulario sirve para crear una receta nueva o editar una existente -->
+      <details id="caja-receta" class="tarjeta nueva">
+        <summary id="titulo-form-receta">＋ Agregar receta nueva</summary>
         <form id="form-receta" autocomplete="off">
           <div class="campo">
             <label for="receta-nombre">Nombre</label>
@@ -634,10 +640,6 @@
             <input id="receta-tiempo" placeholder="Ej. 30 min">
           </div>
           <div class="campo">
-            <label for="receta-porciones">Porciones</label>
-            <input id="receta-porciones" type="number" min="1" inputmode="numeric" placeholder="Ej. 2">
-          </div>
-          <div class="campo">
             <label for="receta-ingredientes">Ingredientes (uno por línea)</label>
             <textarea id="receta-ingredientes" required placeholder="Arroz&#10;Pollo&#10;Cebolla"></textarea>
           </div>
@@ -645,7 +647,11 @@
             <label for="receta-pasos">Pasos (uno por línea)</label>
             <textarea id="receta-pasos" placeholder="Lava el arroz&#10;Sofríe la cebolla"></textarea>
           </div>
-          <button class="boton" type="submit">Guardar receta</button>
+          <div class="pila">
+            <button id="guardar-receta" class="boton" type="submit">Guardar receta</button>
+            <!-- Solo se ve mientras se edita una receta -->
+            <button id="cancelar-edicion" class="boton suave-gris" type="button" hidden>Cancelar</button>
+          </div>
         </form>
       </details>
 
@@ -1397,6 +1403,7 @@
                 <ol class="pasos">${r.pasos.map(p => `<li>${escapar(p)}</li>`).join("")}</ol>` : ""}
               <div class="receta-botones">
                 <button class="boton" data-accion="agregar" data-id="${r.id}">🛒 Agregar ingredientes a la lista</button>
+                <button class="boton lila" data-accion="editar" data-id="${r.id}">✏️ Editar receta</button>
                 <button class="boton rosa" data-accion="borrar" data-id="${r.id}">Borrar receta</button>
               </div>
             </div>
@@ -1423,40 +1430,81 @@
           : "Todos los ingredientes ya estaban en la lista");
       }
 
+      if (boton.dataset.accion === "editar") empezarEdicion(receta);
+
       if (boton.dataset.accion === "borrar") {
         if (!confirm(`¿Borrar la receta "${receta.nombre}"?`)) return;
         recetas = recetas.filter(r => r !== receta);
         guardar(CLAVE_RECETAS, recetas);
         dibujarRecetas();
+        if (editandoId === receta.id) terminarEdicion();
       }
     });
+
+    /* --- Editar una receta: se usa el mismo formulario de "Agregar receta nueva" --- */
+    const formReceta = document.getElementById("form-receta");
+    const cajaReceta = document.getElementById("caja-receta");
+    let editandoId = null; // id de la receta que se está editando (null = receta nueva)
+
+    // Llena el formulario con los datos de la receta y lo abre arriba de la página
+    function empezarEdicion(receta) {
+      editandoId = receta.id;
+      document.getElementById("receta-nombre").value = receta.nombre;
+      document.getElementById("receta-tiempo").value = receta.tiempo || "";
+      document.getElementById("receta-ingredientes").value = receta.ingredientes.join("\n");
+      document.getElementById("receta-pasos").value = receta.pasos.join("\n");
+      formReceta.querySelectorAll("input[name=emoji]").forEach(op => { op.checked = op.value === emojiReceta(receta); });
+
+      document.getElementById("titulo-form-receta").textContent = `✏️ Editando "${receta.nombre}"`;
+      document.getElementById("guardar-receta").textContent = "Guardar cambios";
+      document.getElementById("cancelar-edicion").hidden = false;
+      cajaReceta.open = true;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Deja el formulario vacío y cerrado, listo para una receta nueva
+    function terminarEdicion() {
+      editandoId = null;
+      formReceta.reset();
+      document.getElementById("titulo-form-receta").textContent = "＋ Agregar receta nueva";
+      document.getElementById("guardar-receta").textContent = "Guardar receta";
+      document.getElementById("cancelar-edicion").hidden = true;
+      cajaReceta.open = false;
+    }
+
+    document.getElementById("cancelar-edicion").addEventListener("click", terminarEdicion);
+    // Cerrar el formulario mientras se edita también cancela la edición
+    cajaReceta.addEventListener("toggle", () => { if (!cajaReceta.open && editandoId) terminarEdicion(); });
 
     // Opciones de dibujo en el formulario de receta
     document.getElementById("emojis-receta").innerHTML = EMOJIS_RECETA.map((em, i) => `
       <label><input type="radio" name="emoji" value="${em}" ${i === 0 ? "checked" : ""}><span>${em}</span></label>`
     ).join("");
 
-    // Formulario: agregar receta nueva
-    document.getElementById("form-receta").addEventListener("submit", e => {
+    // Formulario: guardar receta nueva, o los cambios de la receta que se está editando
+    formReceta.addEventListener("submit", e => {
       e.preventDefault();
-      const receta = {
-        id: nuevoId(),
+      const existente = editandoId && recetas.find(r => r.id === editandoId);
+      const datos = {
         nombre: document.getElementById("receta-nombre").value.trim(),
-        emoji: e.target.querySelector("input[name=emoji]:checked")?.value || "🍲",
+        // Si no se eligió ninguno, se conserva el dibujo que ya tenía la receta
+        emoji: formReceta.querySelector("input[name=emoji]:checked")?.value || existente?.emoji || "🍲",
         tiempo: document.getElementById("receta-tiempo").value.trim(),
-        porciones: Number(document.getElementById("receta-porciones").value) || "",
         ingredientes: lineas(document.getElementById("receta-ingredientes").value),
         pasos: lineas(document.getElementById("receta-pasos").value)
       };
-      if (!receta.nombre || receta.ingredientes.length === 0) return;
+      if (!datos.nombre || datos.ingredientes.length === 0) return;
 
-      recetas.unshift(receta); // la nueva aparece de primera
+      if (existente) {
+        Object.assign(existente, datos); // se queda en el mismo lugar de la lista
+        mostrarAviso("Cambios guardados");
+      } else {
+        recetas.unshift({ id: editandoId || nuevoId(), ...datos }); // la nueva aparece de primera
+        mostrarAviso("Receta guardada");
+      }
       guardar(CLAVE_RECETAS, recetas);
       dibujarRecetas();
-
-      e.target.reset();
-      e.target.closest("details").open = false;
-      mostrarAviso("Receta guardada");
+      terminarEdicion();
     });
 
     /* =========================================================
