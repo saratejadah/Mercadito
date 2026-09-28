@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Mi mercado</title>
+
+  <!-- Letra "Nunito" (redondita) (si no hay internet, usa la letra del sistema) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       COLORES Y MEDIDAS
+       Todo en tonos pastel. Cambia estos valores para cambiar el look.
+       Los colores de cada categoría están en CATEGORIAS (en el script).
+       ========================================================= */
+    :root {
+      --menta: #c9f0dc;           /* color principal (botones) */
+      --menta-presionado: #b2e7cb;
+      --menta-texto: #237a52;     /* texto sobre menta y cantidades */
+      --rosa: #ffe4ea;            /* borrar / limpiar */
+      --rosa-texto: #c9506e;
+      --lavanda: #f3f0ff;         /* fondos suaves (campos, pastillas) */
+      --lavanda-borde: #e6e0fb;
+      --fondo: #ffffff;           /* fondo de la página */
+      --texto: #3b3a4a;           /* texto principal */
+      --texto-suave: #9a98aa;     /* texto secundario */
+      --ancho: 520px;             /* ancho de TODOS los bloques */
+      --redondo: 24px;            /* esquinas de tarjetas */
+      --redondo-chico: 18px;      /* esquinas de campos y botones */
+      --toque: 52px;              /* alto mínimo de botones (fácil de tocar) */
+      --sombra: 0 6px 20px rgba(120, 110, 170, .10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.45;
+      color: var(--texto);
+      background: var(--fondo);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button { font: inherit; color: inherit; cursor: pointer; }
+
+    /* Marco común: el encabezado y el contenido tienen exactamente el mismo ancho */
+    .marco {
+      width: 100%;
+      max-width: calc(var(--ancho) + 32px);
+      margin: 0 auto;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    main.marco { padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px)); }
+
+    /* Todos los bloques ocupan el ancho completo del marco */
+    .bloque { display: block; width: 100%; }
+    .pila { display: grid; gap: 10px; }   /* elementos apilados, mismo ancho */
+
+    /* ---------- Encabezado: título + pestañas ---------- */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: calc(14px + env(safe-area-inset-top, 0px)) 0 12px;
+    }
+    /* Título solo, sin caja */
+    .titulo {
+      margin: 0 0 12px;
+      font-size: 24px;
+      font-weight: 800;
+      text-align: center;
+    }
+    /* Pestañas estilo "interruptor" */
+    .pestanas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 5px;
+      background: var(--lavanda);
+      border-radius: var(--redondo);
+    }
+    .pestana {
+      min-height: 46px;
+      border: 0;
+      border-radius: 20px;
+      background: transparent;
+      color: var(--texto-suave);
+      font-weight: 700;
+    }
+    .pestana.activa {
+      background: #fff;
+      color: var(--texto);
+      box-shadow: 0 3px 10px rgba(120, 110, 170, .15);
+    }
+
+    /* ---------- Tarjetas (formularios y recetas) ---------- */
+    .tarjeta {
+      background: #fff;
+      border: 2px solid var(--lavanda-borde);
+      border-radius: var(--redondo);
+      padding: 16px;
+      margin: 8px 0 20px;
+    }
+
+    /* ---------- Campos de texto ---------- */
+    input, textarea {
+      width: 100%;
+      min-height: var(--toque);
+      padding: 12px 18px;
+      font: inherit;
+      color: var(--texto);
+      background: var(--lavanda);
+      border: 2px solid transparent;
+      border-radius: var(--redondo-chico);
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    input:focus, textarea:focus { outline: none; border-color: #bfb3f5; background: #fff; }
+    input::placeholder, textarea::placeholder { color: #b7b4c7; }
+
+    .campo label, .etiqueta {
+      display: block;
+      margin: 0 0 6px 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--texto-suave);
+    }
+
+    /* ---------- Pastillas de categoría: cuadrícula de 2, todas iguales ---------- */
+    .chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 6px 12px;
+      border: 2px solid transparent;
+      border-radius: var(--redondo-chico);
+      background: var(--color, var(--lavanda));
+      font-size: 14px;
+      font-weight: 700;
+      text-align: left;
+      line-height: 1.2;
+    }
+    .chip-emoji { font-size: 20px; }
+    .chip.activa { border-color: var(--texto); box-shadow: 0 3px 10px rgba(0,0,0,.08); }
+
+    /* ---------- Botones grandes (todos del mismo ancho) ---------- */
+    .boton {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: var(--toque);
+      padding: 12px 18px;
+      border: 0;
+      border-radius: var(--redondo-chico);
+      background: var(--menta);
+      color: var(--menta-texto);
+      font-weight: 800;
+      transition: transform .1s;
+    }
+    .boton:active { background: var(--menta-presionado); transform: scale(.98); }
+    .boton.rosa { background: var(--rosa); color: var(--rosa-texto); }
+    .boton.rosa:active { background: #ffd3de; }
+    /* Fila de filtros + botón "Limpiar" a la derecha */
+    .fila-filtros { display: flex; align-items: flex-start; gap: 8px; }
+    .fila-filtros .filtros { flex: 1; min-width: 0; }
+    /* "Limpiar comprados": pastilla pequeña, sin relleno, solo con borde rosa */
+    .limpiar {
+      flex: none;
+      min-height: 44px;
+      margin: 4px 0 8px auto;
+      padding: 6px 14px;
+      border: 2px solid var(--rosa-texto);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--rosa-texto);
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .limpiar:active { background: var(--rosa); }
+
+    /* Botón ✕ para borrar, en la esquina de cada cuadro */
+    .tile-borrar {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: var(--rosa);
+      color: var(--rosa-texto);
+      font-size: 9px;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(0,0,0,.10);
+    }
+    .tile-borrar:active { background: var(--rosa-texto); color: #fff; }
+    /* Zona de toque invisible más grande que el botón, para que sea fácil de tocar */
+    .tile-borrar::before { content: ""; position: absolute; inset: -6px; }
+
+    /* ---------- Filtros por categoría (fila que se desliza de lado) ---------- */
+    .filtros {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px 8px;
+      scrollbar-width: none;
+    }
+    .filtros::-webkit-scrollbar { display: none; }
+    .filtro {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 6px 8px 6px 14px;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background: var(--lavanda);
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      color: #6f6c85;
+    }
+    .filtro.activa {
+      background: var(--color);
+      border-color: var(--texto);
+      color: var(--texto);
+    }
+    .cuenta {
+      min-width: 26px;
+      padding: 1px 8px;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    /* ---------- Títulos de categoría ---------- */
+    .grupo-titulo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 24px 0 14px;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--texto-suave);
+    }
+
+    /* ---------- Cuadrícula de productos ---------- */
+    .grilla {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);   /* 6 por fila: cuadros pequeños */
+      gap: 14px 8px;
+    }
+
+    .tile { position: relative; }
+    .tile-toque {
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background: none;
+      text-align: center;
+    }
+    /* Cuadro pastel con el dibujo del producto */
+    .tile-img {
+      position: relative;
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      border-radius: 16px;
+      background: var(--color, #eee);
+      font-size: clamp(22px, 6.5vw, 32px);
+      box-shadow: var(--sombra);
+      transition: transform .15s, opacity .2s, filter .2s;
+    }
+    .tile-toque:active .tile-img { transform: scale(.93) rotate(-2deg); }
+    .tile-nombre {
+      display: block;
+      margin-top: 5px;
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .tile-cant {
+      display: inline-block;
+      margin-top: 3px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: var(--menta);
+      color: var(--menta-texto);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+
+    /* Producto comprado: pálido, tachado y con ✓ */
+    .tile.comprado .tile-img { filter: grayscale(.9); opacity: .45; box-shadow: none; }
+    .tile.comprado .tile-nombre { text-decoration: line-through; color: var(--texto-suave); }
+    .tile.comprado .tile-cant { background: var(--lavanda); color: var(--texto-suave); }
+    .tile.comprado .tile-img::after {
+      content: "✓";
+      position: absolute;
+      left: 4px;
+      bottom: 4px;
+      width: 16px;
+      height: 16px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--menta-texto);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    /* Mensaje de lista vacía */
+    .vacio {
+      text-align: center;
+      color: var(--texto-suave);
+      padding: 36px 16px;
+      border: 2px dashed var(--lavanda-borde);
+      border-radius: var(--redondo);
+      font-weight: 600;
+    }
+    .vacio-emoji { font-size: 64px; display: block; margin-bottom: 8px; }
+
+    /* ---------- Recetas ---------- */
+    .receta {
+      border-radius: var(--redondo);
+      background: #fff;
+      border: 2px solid var(--lavanda-borde);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .receta summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      list-style: none;
+      cursor: pointer;
+    }
+    .receta summary::-webkit-details-marker { display: none; }
+    .receta-img {
+      flex: none;
+      width: 78px;
+      height: 78px;
+      display: grid;
+      place-items: center;
+      border-radius: 26px;
+      background: var(--color, #fff1c1);
+      font-size: 42px;
+    }
+    .receta-info { flex: 1; min-width: 0; }
+    .receta-titulo { margin: 0 0 6px; font-size: 18px; font-weight: 800; line-height: 1.25; }
+    .datos { display: flex; flex-wrap: wrap; gap: 6px; }
+    .dato {
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: var(--lavanda);
+      font-size: 13px;
+      font-weight: 600;
+      color: #6f6c85;
+    }
+    .flecha {
+      flex: none;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--lavanda);
+      color: var(--texto-suave);
+      font-size: 20px;
+      font-weight: 800;
+      transition: transform .2s;
+    }
+    .receta[open] .flecha { transform: rotate(90deg); }
+
+    .receta-cuerpo { padding: 0 16px 16px; }
+    .subtitulo { margin: 8px 0 10px 4px; font-size: 14px; font-weight: 800; color: var(--texto-suave); }
+
+    /* Ingredientes como pastillas con dibujo */
+    .ingredientes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .ingrediente {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px 5px 5px;
+      border-radius: 999px;
+      background: var(--lavanda);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .ingrediente span {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--color, #eee);
+      font-size: 16px;
+    }
+
+    /* Pasos numerados (solo el número, sin círculo) */
+    .pasos { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: paso; }
+    .pasos li {
+      position: relative;
+      padding: 0 0 12px 28px;
+      counter-increment: paso;
+    }
+    .pasos li::before {
+      content: counter(paso) ".";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--menta-texto);
+      font-weight: 800;
+    }
+
+    /* Separación entre los dos botones de cada receta */
+    .receta-botones { display: grid; gap: 12px; margin-top: 8px; }
+
+    /* Botones de cada receta: sin relleno, solo con borde */
+    .receta-botones .boton {
+      background: transparent;
+      border: 2px solid var(--menta-texto);
+    }
+    .receta-botones .boton.rosa { border-color: var(--rosa-texto); }
+    .receta-botones .boton:active { background: var(--menta); }
+    .receta-botones .boton.rosa:active { background: var(--rosa); }
+
+    /* Formulario de receta nueva (se abre y cierra) */
+    /* Solo el botón, sin caja alrededor */
+    .nueva { padding: 0; border: 0; background: none; }
+    .nueva summary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: var(--toque);
+      border-radius: var(--redondo-chico);
+      background: var(--menta);
+      color: var(--menta-texto);
+      list-style: none;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .nueva summary::-webkit-details-marker { display: none; }
+    .nueva form { padding-top: 16px; }
+
+    /* Selector de dibujo para la receta: 5 por fila, todos iguales */
+    .emojis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .emojis label { margin: 0; }
+    .emojis input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .emojis span {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 2px solid transparent;
+      border-radius: var(--redondo-chico);
+      background: var(--lavanda);
+      font-size: 26px;
+      cursor: pointer;
+    }
+    .emojis input:checked + span { border-color: var(--texto); background: #fff1c1; }
+
+    /* ---------- Aviso flotante ---------- */
+    .aviso {
+      position: fixed;
+      left: 50%;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%) translateY(20px);
+      width: min(calc(100% - 32px), var(--ancho));
+      padding: 14px 20px;
+      border-radius: var(--redondo);
+      background: #fff;
+      border: 2px solid var(--menta);
+      color: var(--menta-texto);
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(120, 110, 170, .2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+    }
+    .aviso.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== ENCABEZADO Y PESTAÑAS ===================== -->
+  <header>
+    <div class="marco">
+      <div class="titulo">Mi mercado</div>
+      <nav class="pestanas">
+        <button class="pestana activa" data-seccion="mercado">🛒 Mercado</button>
+        <button class="pestana" data-seccion="recetas">📖 Recetas</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="marco">
+
+    <!-- ===================== SECCIÓN 1: LISTA DE MERCADO ===================== -->
+    <section id="mercado">
+      <!-- Todo apilado para que cada campo tenga el mismo ancho -->
+      <form id="form-item" class="tarjeta pila" autocomplete="off">
+        <input id="item-nombre" required placeholder="¿Qué hace falta? 🥑" aria-label="Producto">
+        <input id="item-cantidad" placeholder="Cantidad (opcional)" aria-label="Cantidad (opcional)">
+        <!-- Pastillas de categoría (se llenan desde CATEGORIAS) -->
+        <div id="chips-categoria" class="chips" role="radiogroup" aria-label="Categoría"></div>
+        <button class="boton" type="submit">＋ Agregar a la lista</button>
+      </form>
+
+      <!-- Fila superior: filtros por categoría (se llenan en dibujarFiltros) + botón "Limpiar" -->
+      <div class="fila-filtros">
+        <div id="filtros" class="filtros" role="radiogroup" aria-label="Filtrar por categoría"></div>
+        <button id="limpiar-comprados" class="limpiar" type="button" aria-label="Limpiar comprados">🧹 Limpiar</button>
+      </div>
+
+      <!-- Aquí se dibuja la lista (ver función dibujarLista) -->
+      <div id="lista-mercado"></div>
+    </section>
+
+    <!-- ===================== SECCIÓN 2: RECETAS ===================== -->
+    <section id="recetas" hidden>
+      <details class="tarjeta nueva">
+        <summary>＋ Agregar receta nueva</summary>
+        <form id="form-receta" autocomplete="off">
+          <div class="campo">
+            <label for="receta-nombre">Nombre</label>
+            <input id="receta-nombre" required placeholder="Ej. Arroz con pollo">
+          </div>
+          <div class="campo">
+            <label>Dibujo</label>
+            <!-- Opciones de dibujo (se llenan desde EMOJIS_RECETA) -->
+            <div id="emojis-receta" class="emojis"></div>
+          </div>
+          <div class="campo">
+            <label for="receta-tiempo">Tiempo</label>
+            <input id="receta-tiempo" placeholder="Ej. 30 min">
+          </div>
+          <div class="campo">
+            <label for="receta-porciones">Porciones</label>
+            <input id="receta-porciones" type="number" min="1" inputmode="numeric" placeholder="Ej. 2">
+          </div>
+          <div class="campo">
+            <label for="receta-ingredientes">Ingredientes (uno por línea)</label>
+            <textarea id="receta-ingredientes" required placeholder="Arroz&#10;Pollo&#10;Cebolla"></textarea>
+          </div>
+          <div class="campo">
+            <label for="receta-pasos">Pasos (uno por línea)</label>
+            <textarea id="receta-pasos" placeholder="Lava el arroz&#10;Sofríe la cebolla"></textarea>
+          </div>
+          <button class="boton" type="submit">Guardar receta</button>
+        </form>
+      </details>
+
+      <!-- Aquí se dibujan las recetas (ver función dibujarRecetas) -->
+      <div id="lista-recetas"></div>
+    </section>
+  </main>
+
+  <!-- Mensaje corto que aparece abajo por un par de segundos -->
+  <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+
+  <script>
+    /* =========================================================
+       CONFIGURACIÓN
+       ========================================================= */
+
+    // Categorías: nombre, dibujo y color pastel del cuadro.
+    // Puedes agregar, quitar o cambiar el orden.
+    const CATEGORIAS = [
+      { nombre: "Frutas y verduras", emoji: "🥬", color: "#d9f5e1" },
+      { nombre: "Lácteos",           emoji: "🧀", color: "#dcecff" },
+      { nombre: "Carnes",            emoji: "🥩", color: "#ffe0e6" },
+      { nombre: "Despensa",          emoji: "🥫", color: "#fff1c4" },
+      { nombre: "Aseo",              emoji: "🧼", color: "#ebe4ff" },
+      { nombre: "Otros",             emoji: "🛍️", color: "#f0eef5" }
+    ];
+
+    // Dibujo de cada producto según su nombre (palabra → emoji).
+    // Si un producto no aparece aquí, se usa el dibujo de su categoría.
+    const EMOJIS = {
+      // Frutas y verduras
+      "tomate": "🍅", "cebolla": "🧅", "cebolla larga": "🧅", "ajo": "🧄", "papa": "🥔", "zanahoria": "🥕",
+      "lechuga": "🥬", "espinaca": "🥬", "limón": "🍋", "limon": "🍋", "aguacate": "🥑",
+      "pimentón": "🫑", "pimenton": "🫑", "banano": "🍌", "plátano": "🍌", "platano": "🍌",
+      "manzana": "🍎", "fresa": "🍓", "naranja": "🍊", "uva": "🍇", "piña": "🍍", "mango": "🥭",
+      "sandía": "🍉", "sandia": "🍉", "pera": "🍐", "brócoli": "🥦", "brocoli": "🥦", "pepino": "🥒",
+      "maíz": "🌽", "maiz": "🌽", "mazorca": "🌽", "champiñón": "🍄", "champiñones": "🍄",
+      "cilantro": "🌿", "perejil": "🌿", "coco": "🥥", "cereza": "🍒", "kiwi": "🥝",
+      // Lácteos
+      "leche": "🥛", "queso": "🧀", "mantequilla": "🧈", "yogur": "🥛", "crema": "🥛",
+      // Carnes
+      "pollo": "🍗", "pechuga": "🍗", "carne": "🥩", "res": "🥩", "cerdo": "🥓", "tocineta": "🥓",
+      "pescado": "🐟", "atún": "🐟", "atun": "🐟", "camarón": "🦐", "camaron": "🦐", "camarones": "🦐",
+      "huevo": "🥚", "jamón": "🍖", "jamon": "🍖", "salchicha": "🌭", "chorizo": "🌭",
+      // Despensa
+      "arroz": "🍚", "pasta": "🍝", "espagueti": "🍝", "pan": "🍞", "arepa": "🫓", "tortilla": "🫓",
+      "aceite": "🫒", "sal": "🧂", "azúcar": "🍬", "azucar": "🍬", "harina": "🌾", "avena": "🌾",
+      "café": "☕", "cafe": "☕", "chocolate": "🍫", "miel": "🍯", "frijol": "🫘", "lenteja": "🫘",
+      "salsa": "🥫", "caldo": "🥣", "galleta": "🍪", "cereal": "🥣", "agua": "💧", "jugo": "🧃", "gaseosa": "🥤",
+      // Aseo
+      "jabón": "🧼", "jabon": "🧼", "detergente": "🧴", "shampoo": "🧴", "champú": "🧴",
+      "papel higiénico": "🧻", "papel higienico": "🧻", "servilleta": "🧻", "esponja": "🧽",
+      "cloro": "🧴", "cepillo": "🪥", "crema dental": "🪥"
+    };
+
+    // Palabras clave para adivinar la categoría de un producto.
+    // Se revisan en este orden: "Salsa de tomate" cae en Despensa antes que en Verduras.
+    const PALABRAS_CATEGORIA = {
+      "Despensa": ["arroz", "pasta", "espagueti", "frijol", "lenteja", "aceite", "sal", "azúcar", "azucar",
+        "harina", "pan", "café", "cafe", "pimienta", "comino", "salsa", "avena", "caldo", "tortilla", "arepa",
+        "chocolate", "miel", "galleta", "cereal", "agua", "jugo", "gaseosa"],
+      "Aseo": ["jabón", "jabon", "detergente", "papel higiénico", "papel higienico", "shampoo", "champú",
+        "cloro", "esponja", "servilleta", "cepillo", "crema dental"],
+      "Frutas y verduras": ["tomate", "cebolla", "ajo", "papa", "zanahoria", "lechuga", "limón", "limon",
+        "aguacate", "pimentón", "pimenton", "cilantro", "banano", "plátano", "platano", "manzana", "fresa",
+        "naranja", "uva", "piña", "mango", "sandía", "sandia", "pera", "espinaca", "brócoli", "brocoli",
+        "pepino", "maíz", "maiz", "mazorca", "champiñón", "champiñones", "perejil", "coco", "cereza", "kiwi",
+        "fruta", "verdura"],
+      "Lácteos": ["leche", "queso", "yogur", "mantequilla", "crema", "kumis"],
+      "Carnes": ["pollo", "pechuga", "carne", "res", "cerdo", "pescado", "atún", "atun", "camarón", "camaron",
+        "camarones", "jamón", "jamon", "tocineta", "chorizo", "salchicha", "huevo"]
+    };
+
+    // Dibujos para elegir al crear una receta
+    const EMOJIS_RECETA = ["🍲", "🍳", "🍝", "🍗", "🥗", "🍚", "🌮", "🥘", "🍔", "🍰"];
+
+    // Nombres con que se guardan los datos en el navegador (localStorage)
+    const CLAVE_LISTA = "mercado.lista";
+    const CLAVE_RECETAS = "mercado.recetas";
+
+    // Recetas de ejemplo: se cargan solo la primera vez que se abre la página
+    const RECETAS_EJEMPLO = [
+      {
+        nombre: "Huevos pericos",
+        emoji: "🍳",
+        tiempo: "10 min",
+        porciones: 2,
+        ingredientes: ["Huevos", "Tomate", "Cebolla larga", "Sal", "Aceite"],
+        pasos: [
+          "Pica el tomate y la cebolla en cuadritos.",
+          "Sofríe en una sartén con un poco de aceite por 3 minutos.",
+          "Agrega los huevos batidos con una pizca de sal.",
+          "Revuelve hasta que estén cocidos y sirve con arepa o pan."
+        ]
+      },
+      {
+        nombre: "Pasta con salsa de tomate",
+        emoji: "🍝",
+        tiempo: "25 min",
+        porciones: 3,
+        ingredientes: ["Pasta", "Salsa de tomate", "Ajo", "Queso rallado", "Aceite", "Sal"],
+        pasos: [
+          "Cocina la pasta en agua con sal según el paquete.",
+          "En una olla, sofríe el ajo picado en aceite por 1 minuto.",
+          "Agrega la salsa de tomate y cocina 5 minutos.",
+          "Mezcla con la pasta escurrida y sirve con queso rallado."
+        ]
+      },
+      {
+        nombre: "Arroz con pollo fácil",
+        emoji: "🍗",
+        tiempo: "40 min",
+        porciones: 4,
+        ingredientes: ["Arroz", "Pechuga de pollo", "Zanahoria", "Cebolla", "Pimentón", "Caldo de pollo", "Aceite"],
+        pasos: [
+          "Cocina la pechuga en agua con sal, desmécharla y guarda el caldo.",
+          "Pica la cebolla, el pimentón y la zanahoria; sofríelos en aceite.",
+          "Agrega el arroz y revuelve 2 minutos.",
+          "Añade 2 tazas de caldo por taza de arroz y el pollo desmechado.",
+          "Tapa y cocina a fuego bajo unos 20 minutos, hasta que seque."
+        ]
+      }
+    ];
+
+    /* =========================================================
+       GUARDAR Y CARGAR (localStorage)
+       ========================================================= */
+
+    function cargar(clave, porDefecto) {
+      try {
+        const texto = localStorage.getItem(clave);
+        return texto ? JSON.parse(texto) : porDefecto;
+      } catch (e) {
+        return porDefecto; // si algo falla, empezamos con el valor por defecto
+      }
+    }
+
+    function guardar(clave, valor) {
+      try {
+        localStorage.setItem(clave, JSON.stringify(valor));
+      } catch (e) {
+        mostrarAviso("No se pudo guardar en este navegador");
+      }
+    }
+
+    // Crea un identificador único para cada producto o receta
+    function nuevoId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    // Datos en memoria
+    // Cada producto: { id, nombre, cantidad, categoria, comprado }
+    let lista = cargar(CLAVE_LISTA, []);
+    // Cada receta: { id, nombre, emoji, tiempo, porciones, ingredientes: [], pasos: [] }
+    let recetas = cargar(CLAVE_RECETAS, null);
+
+    // Primera vez: usar las recetas de ejemplo
+    if (recetas === null) {
+      recetas = RECETAS_EJEMPLO.map(r => ({ ...r, id: nuevoId() }));
+      guardar(CLAVE_RECETAS, recetas);
+    }
+
+    /* =========================================================
+       UTILIDADES
+       ========================================================= */
+
+    // Evita que el texto escrito por el usuario se interprete como HTML
+    function escapar(texto) {
+      return String(texto ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    // Convierte un texto con varias líneas en una lista, sin líneas vacías
+    function lineas(texto) {
+      return texto.split("\n").map(l => l.trim()).filter(Boolean);
+    }
+
+    // ¿El nombre contiene esta palabra completa? Acepta plural ("tomate" encuentra "tomates")
+    function contienePalabra(nombre, palabra) {
+      return new RegExp("(^|\\s)" + palabra + "(s|es)?(\\s|$)").test(nombre.toLowerCase());
+    }
+
+    // Busca la información de una categoría por su nombre
+    function infoCategoria(nombre) {
+      return CATEGORIAS.find(c => c.nombre === nombre) || CATEGORIAS[CATEGORIAS.length - 1];
+    }
+
+    // Adivina la categoría de un producto según PALABRAS_CATEGORIA
+    function adivinarCategoria(nombre) {
+      for (const categoria in PALABRAS_CATEGORIA) {
+        if (PALABRAS_CATEGORIA[categoria].some(p => contienePalabra(nombre, p))) return categoria;
+      }
+      return "Otros";
+    }
+
+    // Dibujo de un producto: primero por nombre, si no, el de su categoría.
+    // Revisa las palabras más largas primero ("crema dental" antes que "crema").
+    const PALABRAS_EMOJI = Object.keys(EMOJIS).sort((a, b) => b.length - a.length);
+    function emojiDe(nombre, categoria) {
+      const palabra = PALABRAS_EMOJI.find(p => contienePalabra(nombre, p));
+      return palabra ? EMOJIS[palabra] : infoCategoria(categoria).emoji;
+    }
+
+    // Muestra un mensaje corto en la parte de abajo
+    let temporizadorAviso;
+    function mostrarAviso(mensaje) {
+      const aviso = document.getElementById("aviso");
+      aviso.textContent = mensaje;
+      aviso.classList.add("visible");
+      clearTimeout(temporizadorAviso);
+      temporizadorAviso = setTimeout(() => aviso.classList.remove("visible"), 2200);
+    }
+
+    /* =========================================================
+       PESTAÑAS
+       ========================================================= */
+
+    document.querySelectorAll(".pestana").forEach(boton => {
+      boton.addEventListener("click", () => {
+        document.querySelectorAll(".pestana").forEach(b => b.classList.toggle("activa", b === boton));
+        document.getElementById("mercado").hidden = boton.dataset.seccion !== "mercado";
+        document.getElementById("recetas").hidden = boton.dataset.seccion !== "recetas";
+        window.scrollTo(0, 0);
+      });
+    });
+
+    /* =========================================================
+       LISTA DE MERCADO
+       ========================================================= */
+
+    // --- Pastillas de categoría del formulario ---
+    let categoriaElegida = "Otros";
+    let categoriaTocada = false; // true si la persona eligió la categoría a mano
+
+    function dibujarChips() {
+      document.getElementById("chips-categoria").innerHTML = CATEGORIAS.map(c => `
+        <button type="button" class="chip ${c.nombre === categoriaElegida ? "activa" : ""}" style="--color:${c.color}"
+                role="radio" aria-checked="${c.nombre === categoriaElegida}" data-categoria="${escapar(c.nombre)}">
+          <span class="chip-emoji">${c.emoji}</span> ${escapar(c.nombre)}
+        </button>`).join("");
+    }
+
+    document.getElementById("chips-categoria").addEventListener("click", e => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      categoriaElegida = chip.dataset.categoria;
+      categoriaTocada = true;
+      dibujarChips();
+    });
+
+    // Mientras se escribe el nombre, se sugiere la categoría automáticamente
+    document.getElementById("item-nombre").addEventListener("input", e => {
+      if (categoriaTocada) return;
+      const sugerida = adivinarCategoria(e.target.value);
+      if (sugerida !== categoriaElegida) {
+        categoriaElegida = sugerida;
+        dibujarChips();
+      }
+    });
+
+    // --- Un producto: cuadro de color con su dibujo ---
+    function htmlItem(item) {
+      const cat = infoCategoria(item.categoria);
+      return `
+        <li class="tile ${item.comprado ? "comprado" : ""}">
+          <button class="tile-toque" data-accion="marcar" data-id="${item.id}">
+            <span class="tile-img" style="--color:${cat.color}">${emojiDe(item.nombre, item.categoria)}</span>
+            <span class="tile-nombre">${escapar(item.nombre)}</span>
+            ${item.cantidad ? `<span class="tile-cant">${escapar(item.cantidad)}</span>` : ""}
+          </button>
+          <button class="tile-borrar" data-accion="borrar" data-id="${item.id}" aria-label="Borrar ${escapar(item.nombre)}">✕</button>
+        </li>`;
+    }
+
+    // --- Filtros por categoría ---
+    let filtro = "Todos"; // "Todos" o el nombre de una categoría
+
+    // Dibuja las pastillas de filtro: "Todos" + cada categoría que tenga productos.
+    // El número es cuántos faltan por comprar.
+    function dibujarFiltros() {
+      const contenedor = document.getElementById("filtros");
+      const conProductos = CATEGORIAS.filter(c => lista.some(i => infoCategoria(i.categoria) === c));
+
+      // Si la categoría filtrada se quedó sin productos, volver a "Todos"
+      if (filtro !== "Todos" && !conProductos.some(c => c.nombre === filtro)) filtro = "Todos";
+
+      // Solo tiene sentido filtrar si hay más de una categoría
+      contenedor.hidden = conProductos.length < 2;
+
+      const pendientesDe = cat => lista.filter(i => !i.comprado && (!cat || infoCategoria(i.categoria) === cat)).length;
+      const opciones = [
+        { nombre: "Todos", emoji: "✨", color: "#dcecff", cuenta: pendientesDe(null) },
+        ...conProductos.map(c => ({ ...c, cuenta: pendientesDe(c) }))
+      ];
+      contenedor.innerHTML = opciones.map(o => `
+        <button type="button" class="filtro ${o.nombre === filtro ? "activa" : ""}" style="--color:${o.color}"
+                role="radio" aria-checked="${o.nombre === filtro}" data-filtro="${escapar(o.nombre)}">
+          ${o.emoji} ${escapar(o.nombre)} <span class="cuenta">${o.cuenta}</span>
+        </button>`).join("");
+    }
+
+    document.getElementById("filtros").addEventListener("click", e => {
+      const boton = e.target.closest(".filtro");
+      if (!boton) return;
+      filtro = boton.dataset.filtro;
+      dibujarLista();
+    });
+
+    // Dibuja toda la lista: pendientes agrupados por categoría y comprados al final
+    function dibujarLista() {
+      dibujarFiltros();
+      const contenedor = document.getElementById("lista-mercado");
+      // Con un filtro activo, solo se muestran productos de esa categoría
+      const visibles = lista.filter(i => filtro === "Todos" || infoCategoria(i.categoria).nombre === filtro);
+      const pendientes = visibles.filter(i => !i.comprado);
+      const comprados = lista.filter(i => i.comprado);
+      const compradosVisibles = visibles.filter(i => i.comprado);
+
+      if (lista.length === 0) {
+        contenedor.innerHTML = `
+          <p class="vacio"><span class="vacio-emoji">🧺</span>
+          Tu lista está vacía.<br>Agrega productos arriba o desde una receta.</p>`;
+      } else {
+        let html = "";
+        for (const cat of CATEGORIAS) {
+          // Productos con una categoría que ya no existe se muestran en "Otros"
+          const items = pendientes.filter(i => infoCategoria(i.categoria) === cat);
+          if (items.length) {
+            html += `<h3 class="grupo-titulo">${cat.emoji} ${escapar(cat.nombre)}</h3>
+                     <ul class="grilla">${items.map(htmlItem).join("")}</ul>`;
+          }
+        }
+        if (compradosVisibles.length) {
+          html += `<h3 class="grupo-titulo">✅ Comprados (${compradosVisibles.length})</h3>
+                   <ul class="grilla">${compradosVisibles.map(htmlItem).join("")}</ul>`;
+        }
+        contenedor.innerHTML = html;
+      }
+
+      document.getElementById("limpiar-comprados").hidden = comprados.length === 0;
+    }
+
+    // Agregar un producto a la lista.
+    // Si ya existe y estaba comprado, solo se vuelve a marcar como pendiente (no se repite).
+    // Devuelve false si ya estaba pendiente.
+    function agregarProducto(nombre, cantidad, categoria) {
+      const existente = lista.find(i => i.nombre.toLowerCase() === nombre.toLowerCase());
+      if (existente) {
+        if (!existente.comprado) return false;
+        existente.comprado = false;
+        if (cantidad) existente.cantidad = cantidad;
+        return true;
+      }
+      lista.push({ id: nuevoId(), nombre, cantidad, categoria, comprado: false });
+      return true;
+    }
+
+    // Formulario: agregar producto
+    document.getElementById("form-item").addEventListener("submit", e => {
+      e.preventDefault();
+      const campoNombre = document.getElementById("item-nombre");
+      const campoCantidad = document.getElementById("item-cantidad");
+      const nombre = campoNombre.value.trim();
+      if (!nombre) return;
+
+      if (agregarProducto(nombre, campoCantidad.value.trim(), categoriaElegida)) {
+        guardar(CLAVE_LISTA, lista);
+        dibujarLista();
+      } else {
+        mostrarAviso(`"${nombre}" ya está en la lista`);
+      }
+      // Limpiar campos y dejar todo listo para el siguiente producto
+      campoNombre.value = "";
+      campoCantidad.value = "";
+      categoriaElegida = "Otros";
+      categoriaTocada = false;
+      dibujarChips();
+      campoNombre.focus();
+    });
+
+    // Tocar un producto lo marca como comprado (o lo desmarca); tocar su ✕ lo borra
+    document.getElementById("lista-mercado").addEventListener("click", e => {
+      const boton = e.target.closest("[data-accion]");
+      if (!boton) return;
+      const item = lista.find(i => i.id === boton.dataset.id);
+      if (!item) return;
+
+      if (boton.dataset.accion === "borrar") {
+        lista = lista.filter(i => i !== item);
+        mostrarAviso(`Se borró "${item.nombre}"`);
+      } else {
+        item.comprado = !item.comprado;
+      }
+      guardar(CLAVE_LISTA, lista);
+      dibujarLista();
+    });
+
+    // Botón "Limpiar comprados": no borra nada, solo desmarca los comprados
+    // para que vuelvan a la lista de pendientes
+    document.getElementById("limpiar-comprados").addEventListener("click", () => {
+      const comprados = lista.filter(i => i.comprado);
+      comprados.forEach(i => { i.comprado = false; });
+      guardar(CLAVE_LISTA, lista);
+      dibujarLista();
+      const n = comprados.length;
+      mostrarAviso(`${n} producto${n === 1 ? "" : "s"} de nuevo por comprar`);
+    });
+
+    /* =========================================================
+       RECETAS
+       ========================================================= */
+
+    // Dibujo de una receta (las guardadas antes de esta versión no tenían uno)
+    function emojiReceta(r) {
+      return r.emoji || RECETAS_EJEMPLO.find(e => e.nombre === r.nombre)?.emoji || "🍲";
+    }
+
+    // Color pastel del cuadro de cada receta (se van turnando)
+    const COLORES_RECETA = ["#fff1c4", "#ffe0e6", "#d9f5e1", "#dcecff", "#ebe4ff"];
+    function colorReceta(posicion) {
+      return COLORES_RECETA[posicion % COLORES_RECETA.length];
+    }
+
+    function dibujarRecetas() {
+      const contenedor = document.getElementById("lista-recetas");
+      if (recetas.length === 0) {
+        contenedor.innerHTML = `
+          <p class="vacio"><span class="vacio-emoji">📖</span>
+          No hay recetas todavía.<br>Agrega una con el botón de arriba.</p>`;
+        return;
+      }
+      contenedor.innerHTML = recetas.map((r, n) => {
+        const datos = [
+          r.tiempo ? `<span class="dato">⏱ ${escapar(r.tiempo)}</span>` : "",
+          r.porciones ? `<span class="dato">🍽 ${escapar(r.porciones)} porcion${r.porciones == 1 ? "" : "es"}</span>` : "",
+          `<span class="dato">🧺 ${r.ingredientes.length} ingredientes</span>`
+        ].join("");
+
+        const ingredientes = r.ingredientes.map(i => {
+          const cat = adivinarCategoria(i);
+          return `<span class="ingrediente"><span style="--color:${infoCategoria(cat).color}">${emojiDe(i, cat)}</span>${escapar(i)}</span>`;
+        }).join("");
+
+        return `
+          <details class="receta">
+            <summary>
+              <span class="receta-img" style="--color:${colorReceta(n)}">${emojiReceta(r)}</span>
+              <span class="receta-info">
+                <p class="receta-titulo">${escapar(r.nombre)}</p>
+                <span class="datos">${datos}</span>
+              </span>
+              <span class="flecha">›</span>
+            </summary>
+            <div class="receta-cuerpo">
+              <p class="subtitulo">Ingredientes</p>
+              <div class="ingredientes">${ingredientes}</div>
+              ${r.pasos.length ? `<p class="subtitulo">Pasos</p>
+                <ol class="pasos">${r.pasos.map(p => `<li>${escapar(p)}</li>`).join("")}</ol>` : ""}
+              <div class="receta-botones">
+                <button class="boton" data-accion="agregar" data-id="${r.id}">🛒 Agregar ingredientes a la lista</button>
+                <button class="boton rosa" data-accion="borrar" data-id="${r.id}">Borrar receta</button>
+              </div>
+            </div>
+          </details>`;
+      }).join("");
+    }
+
+    // Botones dentro de cada receta
+    document.getElementById("lista-recetas").addEventListener("click", e => {
+      const boton = e.target.closest("[data-accion]");
+      if (!boton) return;
+      const receta = recetas.find(r => r.id === boton.dataset.id);
+      if (!receta) return;
+
+      if (boton.dataset.accion === "agregar") {
+        let agregados = 0;
+        receta.ingredientes.forEach(ing => {
+          if (agregarProducto(ing, "", adivinarCategoria(ing))) agregados++;
+        });
+        guardar(CLAVE_LISTA, lista);
+        dibujarLista();
+        mostrarAviso(agregados
+          ? `Se agregaron ${agregados} ingrediente${agregados === 1 ? "" : "s"} a la lista`
+          : "Todos los ingredientes ya estaban en la lista");
+      }
+
+      if (boton.dataset.accion === "borrar") {
+        if (!confirm(`¿Borrar la receta "${receta.nombre}"?`)) return;
+        recetas = recetas.filter(r => r !== receta);
+        guardar(CLAVE_RECETAS, recetas);
+        dibujarRecetas();
+      }
+    });
+
+    // Opciones de dibujo en el formulario de receta
+    document.getElementById("emojis-receta").innerHTML = EMOJIS_RECETA.map((em, i) => `
+      <label><input type="radio" name="emoji" value="${em}" ${i === 0 ? "checked" : ""}><span>${em}</span></label>`
+    ).join("");
+
+    // Formulario: agregar receta nueva
+    document.getElementById("form-receta").addEventListener("submit", e => {
+      e.preventDefault();
+      const receta = {
+        id: nuevoId(),
+        nombre: document.getElementById("receta-nombre").value.trim(),
+        emoji: e.target.querySelector("input[name=emoji]:checked")?.value || "🍲",
+        tiempo: document.getElementById("receta-tiempo").value.trim(),
+        porciones: Number(document.getElementById("receta-porciones").value) || "",
+        ingredientes: lineas(document.getElementById("receta-ingredientes").value),
+        pasos: lineas(document.getElementById("receta-pasos").value)
+      };
+      if (!receta.nombre || receta.ingredientes.length === 0) return;
+
+      recetas.unshift(receta); // la nueva aparece de primera
+      guardar(CLAVE_RECETAS, recetas);
+      dibujarRecetas();
+
+      e.target.reset();
+      e.target.closest("details").open = false;
+      mostrarAviso("Receta guardada");
+    });
+
+    /* =========================================================
+       INICIO
+       ========================================================= */
+    dibujarChips();
+    dibujarLista();
+    dibujarRecetas();
+  </script>
+</body>
+</html>
