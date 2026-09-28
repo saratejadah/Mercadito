@@ -469,12 +469,34 @@
       cursor: pointer;
     }
     .nueva summary::-webkit-details-marker { display: none; }
-    /* Texto del botón según si la caja está abierta o cerrada */
-    .nueva .si-abierto,
-    .nueva[open] .si-cerrado { display: none; }
-    .nueva[open] .si-abierto { display: inline; }
-    /* Abierta, el botón se ve más suave para no competir con "Agregar a la lista" */
-    #caja-agregar[open] summary { background: var(--lavanda); color: var(--texto-suave); }
+
+    /* Tarjeta que se abre y cierra con una flecha arriba a la derecha ("Agregar productos") */
+    .plegable { padding: 0; }
+    .plegable summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: var(--toque);
+      padding: 8px 8px 8px 18px;
+      list-style: none;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .plegable summary::-webkit-details-marker { display: none; }
+    .plegable form { padding: 0 16px 16px; }
+    .chevron {
+      flex: none;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--lavanda);
+      color: var(--texto-suave);
+      transition: transform .2s;
+    }
+    .plegable[open] .chevron { transform: rotate(180deg); }
     .nueva form { padding-top: 16px; }
 
     /* Selector de dibujo para la receta: 5 por fila, todos iguales */
@@ -535,10 +557,14 @@
     <!-- ===================== SECCIÓN 1: LISTA DE MERCADO ===================== -->
     <section id="mercado">
       <!-- Caja para agregar productos: se abre y cierra tocando el botón -->
-      <details id="caja-agregar" class="tarjeta nueva">
+      <details id="caja-agregar" class="tarjeta plegable">
         <summary>
-          <span class="si-cerrado">＋ Agregar productos</span>
-          <span class="si-abierto">Ocultar ▲</span>
+          <span>Agregar productos</span>
+          <!-- Flecha (chevron) que gira al abrir/cerrar -->
+          <span class="chevron" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
         </summary>
         <!-- Todo apilado para que cada campo tenga el mismo ancho -->
         <form id="form-item" class="pila" autocomplete="off">
