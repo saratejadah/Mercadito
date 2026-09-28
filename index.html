@@ -253,6 +253,36 @@
       text-align: center;
     }
 
+    /* ---------- Arrastrar y soltar productos ---------- */
+    /* Que mantener presionado no seleccione texto ni abra menús */
+    .tile.movible { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    /* Categorías vacías: escondidas, aparecen como zona para soltar solo mientras se arrastra */
+    .grupo-vacio { display: none; }
+    .arrastrando .grupo-vacio { display: block; }
+    .arrastrando .grilla.zona {
+      min-height: 64px;
+      border-radius: 18px;
+      outline: 2px dashed transparent;
+      outline-offset: 6px;
+      transition: outline-color .15s, background .15s;
+    }
+    .arrastrando .grupo-vacio .grilla.zona { outline-color: var(--lavanda-borde); }
+    .arrastrando .grilla.zona-activa { outline-color: #bfb3f5; background: var(--lavanda); }
+    /* El lugar donde va a quedar el producto */
+    .tile.origen { opacity: .3; }
+    .tile.origen .tile-img { box-shadow: none; }
+    /* Copia flotante que sigue el dedo */
+    .fantasma {
+      position: fixed;
+      z-index: 100;
+      margin: 0;
+      list-style: none;
+      pointer-events: none;
+      transform: scale(1.12) rotate(4deg);
+      filter: drop-shadow(0 10px 14px rgba(80, 70, 130, .25));
+    }
+    .fantasma .tile-borrar { display: none; }
+
     /* ---------- Títulos de categoría ---------- */
     .grupo-titulo {
       display: flex;
@@ -947,7 +977,7 @@
     function htmlItem(item) {
       const cat = infoCategoria(item.categoria);
       return `
-        <li class="tile ${item.comprado ? "comprado" : ""}">
+        <li class="tile ${item.comprado ? "comprado" : "movible"}" data-id="${item.id}">
           <button class="tile-toque" data-accion="marcar" data-id="${item.id}">
             <span class="tile-img" style="--color:${cat.color}">${emojiDe(item.nombre, item.categoria)}</span>
             <span class="tile-nombre">${escapar(item.nombre)}</span>
@@ -993,6 +1023,8 @@
 
     // Dibuja toda la lista: pendientes agrupados por categoría y comprados al final
     function dibujarLista() {
+      // Si llega un cambio de otro dispositivo mientras se arrastra, se dibuja al soltar
+      if (arrastre?.activo) { arrastre.redibujar = true; return; }
       dibujarFiltros();
       const contenedor = document.getElementById("lista-mercado");
       // Con un filtro activo, solo se muestran productos de esa categoría
@@ -1010,9 +1042,13 @@
         for (const cat of CATEGORIAS) {
           // Productos con una categoría que ya no existe se muestran en "Otros"
           const items = pendientes.filter(i => infoCategoria(i.categoria) === cat);
-          if (items.length) {
-            html += `<h3 class="grupo-titulo">${cat.emoji} ${escapar(cat.nombre)}</h3>
-                     <ul class="grilla">${items.map(htmlItem).join("")}</ul>`;
+          // Las categorías vacías se dibujan escondidas: aparecen solo al arrastrar,
+          // para poder soltar un producto ahí
+          if (items.length || filtro === "Todos") {
+            html += `<div class="grupo ${items.length ? "" : "grupo-vacio"}">
+                       <h3 class="grupo-titulo">${cat.emoji} ${escapar(cat.nombre)}</h3>
+                       <ul class="grilla zona" data-categoria="${escapar(cat.nombre)}">${items.map(htmlItem).join("")}</ul>
+                     </div>`;
           }
         }
         if (compradosVisibles.length) {
@@ -1063,6 +1099,7 @@
 
     // Tocar un producto lo marca como comprado (o lo desmarca); tocar su ✕ lo borra
     document.getElementById("lista-mercado").addEventListener("click", e => {
+      if (ignorarClick) return; // el "click" que llega justo después de soltar un arrastre
       const boton = e.target.closest("[data-accion]");
       if (!boton) return;
       const item = lista.find(i => i.id === boton.dataset.id);
@@ -1077,6 +1114,168 @@
       guardar(CLAVE_LISTA, lista);
       dibujarLista();
     });
+
+    /* ---------------------------------------------------------
+       ARRASTRAR Y SOLTAR productos (para cambiar el orden o la categoría)
+       - En el celular: mantener presionado un momento y luego arrastrar.
+         Así un toque normal sigue marcando el producto y deslizar sigue haciendo scroll.
+       - Con mouse: hacer clic y arrastrar.
+       Mientras se arrastra, el cuadro original se mueve por la lista mostrando dónde
+       va a quedar, y una copia flotante sigue el dedo.
+       --------------------------------------------------------- */
+    const ESPERA_TOQUE = 350;  // milisegundos que hay que mantener presionado en el celular
+    let arrastre = null;       // datos del arrastre en curso
+    let ignorarClick = false;
+
+    const listaMercado = document.getElementById("lista-mercado");
+
+    function prepararArrastre(tile, x, y, esToque) {
+      arrastre = { tile, x0: x, y0: y, x, y, activo: false };
+      if (esToque) arrastre.temporizador = setTimeout(activarArrastre, ESPERA_TOQUE);
+    }
+
+    function cancelarArrastre() {
+      if (arrastre) clearTimeout(arrastre.temporizador);
+      arrastre = null;
+    }
+
+    function activarArrastre() {
+      const { tile } = arrastre;
+      const r = tile.getBoundingClientRect();
+      arrastre.activo = true;
+      arrastre.dx = arrastre.x - r.left;
+      arrastre.dy = arrastre.y - r.top;
+      arrastre.categoriaInicial = tile.closest(".zona").dataset.categoria;
+
+      // Copia flotante que sigue el dedo / mouse
+      const fantasma = tile.cloneNode(true);
+      fantasma.classList.add("fantasma");
+      fantasma.style.width = r.width + "px";
+      document.body.appendChild(fantasma);
+      arrastre.fantasma = fantasma;
+
+      tile.classList.add("origen");
+      listaMercado.classList.add("arrastrando");
+      if (navigator.vibrate) navigator.vibrate(25); // pequeña vibración en Android
+      moverArrastre(arrastre.x, arrastre.y);
+      desplazarSolo();
+    }
+
+    function moverArrastre(x, y) {
+      arrastre.x = x;
+      arrastre.y = y;
+      const { tile, fantasma } = arrastre;
+      fantasma.style.left = (x - arrastre.dx) + "px";
+      fantasma.style.top = (y - arrastre.dy) + "px";
+
+      // ¿Sobre qué categoría y qué producto está el dedo?
+      const debajo = document.elementFromPoint(x, y);
+      const zona = debajo?.closest(".zona");
+      if (!zona) return;
+      listaMercado.querySelectorAll(".zona-activa").forEach(z => z !== zona && z.classList.remove("zona-activa"));
+      zona.classList.add("zona-activa");
+
+      const sobre = debajo.closest(".tile.movible");
+      if (sobre && sobre !== tile) {
+        // Antes o después de ese producto, según en qué mitad esté el dedo
+        const r = sobre.getBoundingClientRect();
+        zona.insertBefore(tile, x < r.left + r.width / 2 ? sobre : sobre.nextSibling);
+      } else if (!sobre && tile.parentNode !== zona) {
+        zona.appendChild(tile); // espacio vacío de otra categoría: al final
+      }
+    }
+
+    // Si el dedo se acerca al borde de arriba o de abajo, la página se desplaza sola
+    function desplazarSolo() {
+      if (!arrastre?.activo) return;
+      const arriba = document.querySelector("header").getBoundingClientRect().bottom + 50;
+      const abajo = window.innerHeight - 70;
+      const y = arrastre.y;
+      const velocidad = y < arriba ? -(arriba - y) / 4 : y > abajo ? (y - abajo) / 4 : 0;
+      if (velocidad) {
+        window.scrollBy(0, Math.max(-20, Math.min(20, velocidad)));
+        moverArrastre(arrastre.x, arrastre.y);
+      }
+      requestAnimationFrame(desplazarSolo);
+    }
+
+    function soltarArrastre() {
+      const { tile, fantasma, categoriaInicial } = arrastre;
+      const zona = tile.parentNode;
+      const categoria = zona.dataset.categoria;
+      const siguienteId = tile.nextElementSibling?.dataset.id;
+
+      fantasma.remove();
+      listaMercado.classList.remove("arrastrando");
+      arrastre = null;
+      ignorarClick = true;
+      setTimeout(() => { ignorarClick = false; }, 300);
+
+      // Mover el producto dentro de la lista guardada
+      const item = lista.find(i => i.id === tile.dataset.id);
+      if (item) {
+        lista = lista.filter(i => i !== item);
+        item.categoria = categoria;
+        const posSiguiente = lista.findIndex(i => i.id === siguienteId);
+        if (posSiguiente >= 0) {
+          lista.splice(posSiguiente, 0, item);
+        } else {
+          // Al final de su categoría (después del último producto de esa categoría)
+          const ultimo = lista.map(i => infoCategoria(i.categoria).nombre).lastIndexOf(categoria);
+          lista.splice(ultimo + 1, 0, item);
+        }
+        guardar(CLAVE_LISTA, lista);
+        if (categoria !== categoriaInicial) mostrarAviso(`"${item.nombre}" ahora está en ${categoria}`);
+      }
+      dibujarLista(); // también muestra cambios que llegaron de otro dispositivo durante el arrastre
+    }
+
+    // --- Celular (toque) ---
+    listaMercado.addEventListener("touchstart", e => {
+      const tile = e.target.closest(".tile.movible");
+      if (!tile || e.target.closest(".tile-borrar") || e.touches.length > 1) return;
+      prepararArrastre(tile, e.touches[0].clientX, e.touches[0].clientY, true);
+    }, { passive: true });
+
+    document.addEventListener("touchmove", e => {
+      if (!arrastre) return;
+      const t = e.touches[0];
+      if (!arrastre.activo) {
+        // Si el dedo se movió antes de tiempo, es un scroll normal: cancelar
+        if (Math.hypot(t.clientX - arrastre.x0, t.clientY - arrastre.y0) > 10) cancelarArrastre();
+        return;
+      }
+      e.preventDefault(); // no hacer scroll mientras se arrastra
+      moverArrastre(t.clientX, t.clientY);
+    }, { passive: false });
+
+    const finToque = () => { if (arrastre?.activo) soltarArrastre(); else cancelarArrastre(); };
+    document.addEventListener("touchend", finToque);
+    document.addEventListener("touchcancel", finToque);
+
+    // Evitar el menú que aparece al mantener presionado
+    listaMercado.addEventListener("contextmenu", e => { if (e.target.closest(".tile.movible")) e.preventDefault(); });
+
+    // --- Computador (mouse) ---
+    listaMercado.addEventListener("mousedown", e => {
+      const tile = e.target.closest(".tile.movible");
+      if (e.button !== 0 || !tile || e.target.closest(".tile-borrar")) return;
+      prepararArrastre(tile, e.clientX, e.clientY, false);
+    });
+
+    document.addEventListener("mousemove", e => {
+      if (!arrastre) return;
+      if (!arrastre.activo) {
+        // Empieza a arrastrar cuando el mouse se mueve un poquito con el botón presionado
+        if (Math.hypot(e.clientX - arrastre.x0, e.clientY - arrastre.y0) < 6) return;
+        arrastre.x = e.clientX;
+        arrastre.y = e.clientY;
+        activarArrastre();
+      }
+      moverArrastre(e.clientX, e.clientY);
+    });
+
+    document.addEventListener("mouseup", () => { if (arrastre?.activo) soltarArrastre(); else cancelarArrastre(); });
 
     // Botón "Limpiar comprados": no borra nada, solo desmarca los comprados
     // para que vuelvan a la lista de pendientes
