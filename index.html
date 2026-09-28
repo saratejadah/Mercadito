@@ -569,7 +569,6 @@
         <!-- Todo apilado para que cada campo tenga el mismo ancho -->
         <form id="form-item" class="pila" autocomplete="off">
           <input id="item-nombre" required placeholder="¿Qué hace falta? 🥑" aria-label="Producto">
-          <input id="item-cantidad" placeholder="Cantidad (opcional)" aria-label="Cantidad (opcional)">
           <!-- Pastillas de categoría (se llenan desde CATEGORIAS) -->
           <div id="chips-categoria" class="chips" role="radiogroup" aria-label="Categoría"></div>
           <button class="boton" type="submit">＋ Agregar a la lista</button>
@@ -1045,11 +1044,10 @@
     document.getElementById("form-item").addEventListener("submit", e => {
       e.preventDefault();
       const campoNombre = document.getElementById("item-nombre");
-      const campoCantidad = document.getElementById("item-cantidad");
       const nombre = campoNombre.value.trim();
       if (!nombre) return;
 
-      if (agregarProducto(nombre, campoCantidad.value.trim(), categoriaElegida)) {
+      if (agregarProducto(nombre, "", categoriaElegida)) {
         guardar(CLAVE_LISTA, lista);
         dibujarLista();
       } else {
@@ -1057,7 +1055,6 @@
       }
       // Limpiar campos y dejar todo listo para el siguiente producto
       campoNombre.value = "";
-      campoCantidad.value = "";
       categoriaElegida = "Otros";
       categoriaTocada = false;
       dibujarChips();
