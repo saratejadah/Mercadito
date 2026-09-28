@@ -591,6 +591,21 @@
 
   <script>
     /* =========================================================
+       ☁️ NUBE (Firebase) — para compartir la lista entre dispositivos
+       Pega aquí la configuración de tu proyecto de Firebase
+       (Configuración del proyecto → Tus apps → Configuración del SDK).
+       Si se deja vacío, la página funciona igual pero guarda solo en este navegador.
+       ========================================================= */
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBBvI9TYF9_DS-O2Bv-KKDUbNhBa2453XE",
+      authDomain: "mercadito-mateix.firebaseapp.com",
+      projectId: "mercadito-mateix",
+      storageBucket: "mercadito-mateix.firebasestorage.app",
+      messagingSenderId: "432546505145",
+      appId: "1:432546505145:web:dc16b6e4799722c3f3d668"
+    };
+
+    /* =========================================================
        CONFIGURACIÓN
        ========================================================= */
 
@@ -703,7 +718,10 @@
     ];
 
     /* =========================================================
-       GUARDAR Y CARGAR (localStorage)
+       GUARDAR Y CARGAR
+       Los datos se guardan en la nube (Firebase), para que todos vean lo mismo,
+       y también en este navegador (localStorage), para que la página abra rápido
+       y funcione aunque no haya internet.
        ========================================================= */
 
     function cargar(clave, porDefecto) {
@@ -715,11 +733,59 @@
       }
     }
 
-    function guardar(clave, valor) {
+    function guardarLocal(clave, valor) {
       try {
         localStorage.setItem(clave, JSON.stringify(valor));
       } catch (e) {
-        mostrarAviso("No se pudo guardar en este navegador");
+        // sin almacenamiento local: la nube sigue funcionando
+      }
+    }
+
+    // Guarda en este navegador y en la nube
+    function guardar(clave, valor) {
+      guardarLocal(clave, valor);
+      guardarEnNube(clave, valor);
+    }
+
+    // --- Nube ---
+    // En Firebase se guardan dos documentos: mercado/lista y mercado/recetas
+    const DOCUMENTOS = { [CLAVE_LISTA]: "lista", [CLAVE_RECETAS]: "recetas" };
+    let nube = null; // se llena cuando la conexión con Firebase está lista
+
+    function guardarEnNube(clave, valor) {
+      if (!nube) return;
+      nube.setDoc(nube.doc(nube.db, "mercado", DOCUMENTOS[clave]), { items: valor })
+        .catch(() => mostrarAviso("No se pudo guardar en la nube"));
+    }
+
+    // Se conecta a Firebase y escucha cambios: cuando alguien agrega o marca algo
+    // en otro dispositivo, la página se actualiza sola.
+    async function conectarNube() {
+      if (!FIREBASE_CONFIG.projectId) return; // sin configurar: solo este navegador
+      try {
+        const V = "10.12.2"; // versión de Firebase
+        const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+        const { getFirestore, doc, setDoc, onSnapshot } =
+          await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+        const db = getFirestore(initializeApp(FIREBASE_CONFIG));
+        nube = { db, doc, setDoc };
+
+        const escuchar = (clave, alCambiar) => {
+          onSnapshot(doc(db, "mercado", DOCUMENTOS[clave]), foto => {
+            if (foto.exists()) {
+              const items = foto.data().items || [];
+              guardarLocal(clave, items);
+              alCambiar(items);
+            } else {
+              // La nube todavía está vacía: subir lo que hay en este navegador
+              guardarEnNube(clave, clave === CLAVE_LISTA ? lista : recetas);
+            }
+          }, () => mostrarAviso("No se pudo conectar con la nube"));
+        };
+        escuchar(CLAVE_LISTA, items => { lista = items; dibujarLista(); });
+        escuchar(CLAVE_RECETAS, items => { recetas = items; dibujarRecetas(); });
+      } catch (e) {
+        mostrarAviso("Sin conexión: los cambios se guardan solo en este dispositivo");
       }
     }
 
@@ -1004,6 +1070,9 @@
 
     function dibujarRecetas() {
       const contenedor = document.getElementById("lista-recetas");
+      // Recordar qué recetas estaban abiertas, para que no se cierren
+      // cuando llega un cambio desde otro dispositivo
+      const abiertas = new Set([...contenedor.querySelectorAll("details[open]")].map(d => d.dataset.id));
       if (recetas.length === 0) {
         contenedor.innerHTML = `
           <p class="vacio"><span class="vacio-emoji">📖</span>
@@ -1023,7 +1092,7 @@
         }).join("");
 
         return `
-          <details class="receta">
+          <details class="receta" data-id="${r.id}" ${abiertas.has(r.id) ? "open" : ""}>
             <summary>
               <span class="receta-img" style="--color:${colorReceta(n)}">${emojiReceta(r)}</span>
               <span class="receta-info">
@@ -1107,6 +1176,7 @@
     dibujarChips();
     dibujarLista();
     dibujarRecetas();
+    conectarNube();
   </script>
 </body>
 </html>
