@@ -690,48 +690,97 @@
 
     // Dibujo de cada producto según su nombre (palabra → emoji).
     // Si un producto no aparece aquí, se usa el dibujo de su categoría.
+    // No importan las tildes ni el plural: "limon" y "limones" encuentran "limón".
+    // Si dos palabras coinciden, gana la más larga ("salsa de tomate" antes que "tomate").
     const EMOJIS = {
       // Frutas y verduras
-      "tomate": "🍅", "cebolla": "🧅", "cebolla larga": "🧅", "ajo": "🧄", "papa": "🥔", "zanahoria": "🥕",
-      "lechuga": "🥬", "espinaca": "🥬", "limón": "🍋", "limon": "🍋", "aguacate": "🥑",
-      "pimentón": "🫑", "pimenton": "🫑", "banano": "🍌", "plátano": "🍌", "platano": "🍌",
-      "manzana": "🍎", "fresa": "🍓", "naranja": "🍊", "uva": "🍇", "piña": "🍍", "mango": "🥭",
-      "sandía": "🍉", "sandia": "🍉", "pera": "🍐", "brócoli": "🥦", "brocoli": "🥦", "pepino": "🥒",
-      "maíz": "🌽", "maiz": "🌽", "mazorca": "🌽", "champiñón": "🍄", "champiñones": "🍄",
-      "cilantro": "🌿", "perejil": "🌿", "coco": "🥥", "cereza": "🍒", "kiwi": "🥝",
+      "tomate": "🍅", "cebolla": "🧅", "cebolla larga": "🧅", "cebolla cabezona": "🧅", "cebollín": "🧅",
+      "ajo": "🧄", "papa": "🥔", "papa criolla": "🥔", "yuca": "🍠", "batata": "🍠", "ñame": "🍠",
+      "zanahoria": "🥕", "arracacha": "🥕", "lechuga": "🥬", "espinaca": "🥬", "acelga": "🥬",
+      "repollo": "🥬", "col": "🥬", "kale": "🥬", "apio": "🥬", "limón": "🍋", "lima": "🍋",
+      "aguacate": "🥑", "pimentón": "🫑", "pimiento": "🫑", "ají": "🌶️", "chile": "🌶️", "jalapeño": "🌶️",
+      "banano": "🍌", "plátano": "🍌", "guineo": "🍌", "manzana": "🍎", "manzana verde": "🍏",
+      "fresa": "🍓", "frambuesa": "🍓", "mora": "🫐", "arándano": "🫐", "naranja": "🍊", "mandarina": "🍊",
+      "toronja": "🍊", "uva": "🍇", "piña": "🍍", "mango": "🥭", "sandía": "🍉", "melón": "🍈",
+      "pera": "🍐", "durazno": "🍑", "melocotón": "🍑", "cereza": "🍒", "kiwi": "🥝", "coco": "🥥",
+      "brócoli": "🥦", "coliflor": "🥦", "pepino": "🥒", "calabacín": "🥒", "zucchini": "🥒",
+      "berenjena": "🍆", "maíz": "🌽", "mazorca": "🌽", "choclo": "🌽", "champiñón": "🍄",
+      "champiñones": "🍄", "hongo": "🍄", "cilantro": "🌿", "perejil": "🌿", "albahaca": "🌿",
+      "hierbabuena": "🌿", "menta": "🌿", "romero": "🌿", "tomillo": "🌿", "orégano": "🌿", "laurel": "🌿",
+      "jengibre": "🫚", "arveja": "🫛", "habichuela": "🫛", "aceituna": "🫒", "ensalada": "🥗",
+      "fruta": "🍎", "verdura": "🥬",
       // Lácteos
-      "leche": "🥛", "queso": "🧀", "mantequilla": "🧈", "yogur": "🥛", "crema": "🥛",
-      // Carnes
-      "pollo": "🍗", "pechuga": "🍗", "carne": "🥩", "res": "🥩", "cerdo": "🥓", "tocineta": "🥓",
-      "pescado": "🐟", "atún": "🐟", "atun": "🐟", "camarón": "🦐", "camaron": "🦐", "camarones": "🦐",
-      "huevo": "🥚", "jamón": "🍖", "jamon": "🍖", "salchicha": "🌭", "chorizo": "🌭",
+      "leche": "🥛", "leche deslactosada": "🥛", "leche en polvo": "🥛", "queso": "🧀", "queso crema": "🧀",
+      "quesito": "🧀", "cuajada": "🧀", "mozzarella": "🧀", "parmesano": "🧀", "mantequilla": "🧈",
+      "margarina": "🧈", "yogur": "🥛", "yogurt": "🥛", "kumis": "🥛", "crema": "🥛", "crema de leche": "🥛",
+      "suero": "🥛", "kefir": "🥛", "leche de almendras": "🥛", "arequipe": "🍯", "helado": "🍦",
+      // Carnes, pescados y huevos
+      "pollo": "🍗", "pechuga": "🍗", "muslo": "🍗", "alas": "🍗", "alitas": "🍗", "carne": "🥩",
+      "res": "🥩", "carne molida": "🥩", "lomo": "🥩", "costilla": "🍖", "cerdo": "🥓", "tocineta": "🥓",
+      "tocino": "🥓", "chicharrón": "🥓", "pescado": "🐟", "tilapia": "🐟", "salmón": "🐟", "atún": "🐟",
+      "sardina": "🐟", "camarón": "🦐", "camarones": "🦐", "calamar": "🦑", "pulpo": "🐙",
+      "cangrejo": "🦀", "langosta": "🦞", "huevo": "🥚", "jamón": "🍖", "salchicha": "🌭",
+      "salchichón": "🌭", "chorizo": "🌭", "butifarra": "🌭", "hamburguesa": "🍔", "pavo": "🦃",
       // Despensa
-      "arroz": "🍚", "pasta": "🍝", "espagueti": "🍝", "pan": "🍞", "arepa": "🫓", "tortilla": "🫓",
-      "aceite": "🫒", "sal": "🧂", "azúcar": "🍬", "azucar": "🍬", "harina": "🌾", "avena": "🌾", "granola": "🥜",
-      "café": "☕", "cafe": "☕", "chocolate": "🍫", "miel": "🍯", "frijol": "🫘", "lenteja": "🫘",
-      "salsa": "🥫", "caldo": "🥣", "galleta": "🍪", "cereal": "🥣", "agua": "💧", "jugo": "🧃", "gaseosa": "🥤",
+      "arroz": "🍚", "pasta": "🍝", "pasta de arroz": "🍝", "espagueti": "🍝", "macarrones": "🍝", "fideos": "🍜", "sopa": "🍜",
+      "ramen": "🍜", "pan": "🍞", "pan tajado": "🍞", "pan integral": "🍞", "tostada": "🍞",
+      "baguette": "🥖", "croissant": "🥐", "arepa": "🫓", "tortilla": "🫓", "pita": "🫓",
+      "galleta": "🍪", "cereal": "🥣", "avena": "🌾", "granola": "🥜", "harina": "🌾", "maizena": "🌾",
+      "aceite": "🫒", "aceite de oliva": "🫒", "sal": "🧂", "pimienta": "🧂", "comino": "🧂",
+      "azúcar": "🍬", "panela": "🍯", "miel": "🍯", "mermelada": "🍯", "café": "☕", "té": "🍵",
+      "aromática": "🍵", "chocolate": "🍫", "cacao": "🍫", "frijol": "🫘", "fríjol": "🫘", "lenteja": "🫘",
+      "garbanzo": "🫘", "maní": "🥜", "mantequilla de maní": "🥜", "almendra": "🥜", "marañón": "🥜",
+      "pistacho": "🥜", "nuez": "🌰", "nueces": "🌰", "castaña": "🌰", "salsa": "🥫",
+      "salsa de tomate": "🥫", "mayonesa": "🥫", "mostaza": "🥫", "enlatado": "🥫", "vinagre": "🍶",
+      "caldo": "🥣", "caldo de pollo": "🥣", "agua": "💧", "jugo": "🧃", "gaseosa": "🥤", "soda": "🥤",
+      "cerveza": "🍺", "vino": "🍷", "hielo": "🧊", "papas fritas": "🍟", "papitas": "🍟",
+      "palomitas": "🍿", "crispetas": "🍿", "dulce": "🍬", "chicle": "🍬", "torta": "🍰", "ponqué": "🍰",
+      "gelatina": "🍮", "flan": "🍮", "pizza": "🍕", "empanada": "🥟",
       // Aseo
-      "jabón": "🧼", "jabon": "🧼", "detergente": "🧴", "shampoo": "🧴", "champú": "🧴",
-      "papel higiénico": "🧻", "papel higienico": "🧻", "servilleta": "🧻", "esponja": "🧽",
-      "cloro": "🧴", "cepillo": "🪥", "crema dental": "🪥"
+      "jabón": "🧼", "jabón de loza": "🧼", "jabón de ropa": "🧼", "detergente": "🧴", "suavizante": "🧴",
+      "shampoo": "🧴", "champú": "🧴", "acondicionador": "🧴", "crema dental": "🪥", "pasta dental": "🪥",
+      "cepillo": "🪥", "cepillo de dientes": "🪥", "seda dental": "🪥", "papel higiénico": "🧻",
+      "papel": "🧻", "servilleta": "🧻", "toalla de cocina": "🧻", "pañuelo": "🧻", "esponja": "🧽",
+      "cloro": "🧴", "límpido": "🧴", "desinfectante": "🧴", "desodorante": "🧴", "crema corporal": "🧴",
+      "bloqueador": "🧴", "protector solar": "🧴", "pañal": "🧷", "afeitadora": "🪒", "cuchilla": "🪒",
+      "escoba": "🧹", "trapero": "🧹", "bolsa de basura": "🗑️", "guantes": "🧤",
+      // Otros
+      "pila": "🔋", "bombillo": "💡", "vela": "🕯️", "flor": "💐", "comida para perro": "🦴",
+      "concentrado": "🦴", "bolsa": "🛍️", "medicina": "💊", "pastilla": "💊", "vitamina": "💊"
     };
 
     // Palabras clave para adivinar la categoría de un producto.
-    // Se revisan en este orden: "Salsa de tomate" cae en Despensa antes que en Verduras.
+    // Se revisan en este orden: primero Aseo ("pasta dental" no es Despensa), luego Despensa
+    // ("salsa de tomate" no es Verdura), y así. Si nada coincide, queda en "Otros".
     const PALABRAS_CATEGORIA = {
-      "Despensa": ["arroz", "pasta", "espagueti", "frijol", "lenteja", "aceite", "sal", "azúcar", "azucar",
-        "harina", "pan", "café", "cafe", "pimienta", "comino", "salsa", "avena", "caldo", "tortilla", "arepa",
-        "chocolate", "miel", "galleta", "cereal", "granola", "agua", "jugo", "gaseosa"],
-      "Aseo": ["jabón", "jabon", "detergente", "papel higiénico", "papel higienico", "shampoo", "champú",
-        "cloro", "esponja", "servilleta", "cepillo", "crema dental"],
-      "Frutas y verduras": ["tomate", "cebolla", "ajo", "papa", "zanahoria", "lechuga", "limón", "limon",
-        "aguacate", "pimentón", "pimenton", "cilantro", "banano", "plátano", "platano", "manzana", "fresa",
-        "naranja", "uva", "piña", "mango", "sandía", "sandia", "pera", "espinaca", "brócoli", "brocoli",
-        "pepino", "maíz", "maiz", "mazorca", "champiñón", "champiñones", "perejil", "coco", "cereza", "kiwi",
-        "fruta", "verdura"],
-      "Lácteos": ["leche", "queso", "yogur", "mantequilla", "crema", "kumis"],
-      "Carnes": ["pollo", "pechuga", "carne", "res", "cerdo", "pescado", "atún", "atun", "camarón", "camaron",
-        "camarones", "jamón", "jamon", "tocineta", "chorizo", "salchicha", "huevo"]
+      "Aseo": ["jabón", "detergente", "suavizante", "shampoo", "champú", "acondicionador", "crema dental",
+        "pasta dental", "cepillo", "seda dental", "papel higiénico", "papel", "servilleta", "toalla de cocina",
+        "pañuelo", "esponja", "cloro", "límpido", "desinfectante", "desodorante", "crema corporal",
+        "bloqueador", "protector solar", "pañal", "afeitadora", "cuchilla", "escoba", "trapero",
+        "bolsa de basura", "guantes"],
+      "Despensa": ["arroz", "pasta", "espagueti", "macarrones", "fideos", "sopa", "ramen", "pan", "tostada",
+        "baguette", "croissant", "arepa", "tortilla", "pita", "galleta", "cereal", "avena", "granola", "harina",
+        "maizena", "aceite", "sal", "pimienta", "comino", "azúcar", "panela", "miel", "mermelada", "café", "té",
+        "aromática", "chocolate", "cacao", "frijol", "fríjol", "lenteja", "garbanzo", "maní", "almendra",
+        "marañón", "pistacho", "nuez", "nueces", "castaña", "salsa", "mayonesa", "mostaza", "enlatado",
+        "vinagre", "caldo", "agua", "jugo", "gaseosa", "soda", "cerveza", "vino", "hielo", "papas fritas",
+        "papitas", "palomitas", "crispetas", "dulce", "chicle", "torta", "ponqué", "gelatina", "flan", "pizza",
+        "empanada"],
+      "Frutas y verduras": ["tomate", "cebolla", "cebollín", "ajo", "papa", "yuca", "batata", "ñame",
+        "zanahoria", "arracacha", "lechuga", "espinaca", "acelga", "repollo", "col", "kale", "apio", "limón",
+        "lima", "aguacate", "pimentón", "pimiento", "ají", "chile", "jalapeño", "banano", "plátano", "guineo",
+        "manzana", "fresa", "frambuesa", "mora", "arándano", "naranja", "mandarina", "toronja", "uva", "piña",
+        "mango", "sandía", "melón", "pera", "durazno", "melocotón", "cereza", "kiwi", "coco", "brócoli",
+        "coliflor", "pepino", "calabacín", "zucchini", "berenjena", "maíz", "mazorca", "choclo", "champiñón",
+        "champiñones", "hongo", "cilantro", "perejil", "albahaca", "hierbabuena", "menta", "romero", "tomillo",
+        "orégano", "laurel", "jengibre", "arveja", "habichuela", "aceituna", "ensalada", "papaya", "guayaba",
+        "maracuyá", "lulo", "granadilla", "mamoncillo", "remolacha", "fruta", "verdura"],
+      "Lácteos": ["leche", "queso", "quesito", "cuajada", "mozzarella", "parmesano", "mantequilla", "margarina",
+        "yogur", "yogurt", "kefir", "kumis", "crema", "suero", "arequipe", "helado"],
+      "Carnes": ["pollo", "pechuga", "muslo", "alas", "alitas", "carne", "res", "lomo", "costilla", "cerdo",
+        "tocineta", "tocino", "chicharrón", "pescado", "tilapia", "salmón", "atún", "sardina", "camarón",
+        "camarones", "calamar", "pulpo", "cangrejo", "langosta", "huevo", "jamón", "salchicha", "salchichón",
+        "chorizo", "butifarra", "hamburguesa", "pavo"]
     };
 
     // Dibujos para elegir al crear una receta
@@ -892,7 +941,12 @@
 
     // ¿El nombre contiene esta palabra completa? Acepta plural ("tomate" encuentra "tomates")
     function contienePalabra(nombre, palabra) {
-      return new RegExp("(^|\\s)" + palabra + "(s|es)?(\\s|$)").test(nombre.toLowerCase());
+      return new RegExp("(^|\\s)" + sinTildes(palabra) + "(s|es)?(\\s|$)").test(sinTildes(nombre));
+    }
+
+    // Minúsculas y sin tildes, para comparar ("Limón" → "limon")
+    function sinTildes(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
     }
 
     // Busca la información de una categoría por su nombre
