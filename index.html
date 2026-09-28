@@ -469,6 +469,12 @@
       cursor: pointer;
     }
     .nueva summary::-webkit-details-marker { display: none; }
+    /* Texto del botón según si la caja está abierta o cerrada */
+    .nueva .si-abierto,
+    .nueva[open] .si-cerrado { display: none; }
+    .nueva[open] .si-abierto { display: inline; }
+    /* Abierta, el botón se ve más suave para no competir con "Agregar a la lista" */
+    #caja-agregar[open] summary { background: var(--lavanda); color: var(--texto-suave); }
     .nueva form { padding-top: 16px; }
 
     /* Selector de dibujo para la receta: 5 por fila, todos iguales */
@@ -528,14 +534,21 @@
 
     <!-- ===================== SECCIÓN 1: LISTA DE MERCADO ===================== -->
     <section id="mercado">
-      <!-- Todo apilado para que cada campo tenga el mismo ancho -->
-      <form id="form-item" class="tarjeta pila" autocomplete="off">
-        <input id="item-nombre" required placeholder="¿Qué hace falta? 🥑" aria-label="Producto">
-        <input id="item-cantidad" placeholder="Cantidad (opcional)" aria-label="Cantidad (opcional)">
-        <!-- Pastillas de categoría (se llenan desde CATEGORIAS) -->
-        <div id="chips-categoria" class="chips" role="radiogroup" aria-label="Categoría"></div>
-        <button class="boton" type="submit">＋ Agregar a la lista</button>
-      </form>
+      <!-- Caja para agregar productos: se abre y cierra tocando el botón -->
+      <details id="caja-agregar" class="tarjeta nueva">
+        <summary>
+          <span class="si-cerrado">＋ Agregar productos</span>
+          <span class="si-abierto">Ocultar ▲</span>
+        </summary>
+        <!-- Todo apilado para que cada campo tenga el mismo ancho -->
+        <form id="form-item" class="pila" autocomplete="off">
+          <input id="item-nombre" required placeholder="¿Qué hace falta? 🥑" aria-label="Producto">
+          <input id="item-cantidad" placeholder="Cantidad (opcional)" aria-label="Cantidad (opcional)">
+          <!-- Pastillas de categoría (se llenan desde CATEGORIAS) -->
+          <div id="chips-categoria" class="chips" role="radiogroup" aria-label="Categoría"></div>
+          <button class="boton" type="submit">＋ Agregar a la lista</button>
+        </form>
+      </details>
 
       <!-- Fila superior: filtros por categoría (se llenan en dibujarFiltros) + botón "Limpiar" -->
       <div class="fila-filtros">
@@ -1173,6 +1186,15 @@
     /* =========================================================
        INICIO
        ========================================================= */
+    // Caja de agregar productos: recordar en este dispositivo si se dejó abierta o cerrada
+    const cajaAgregar = document.getElementById("caja-agregar");
+    cajaAgregar.open = cargar("mercado.cajaAbierta", true);
+    cajaAgregar.addEventListener("toggle", () => guardarLocal("mercado.cajaAbierta", cajaAgregar.open));
+    // Al abrirla tocando el botón, dejar el cursor listo para escribir
+    cajaAgregar.querySelector("summary").addEventListener("click", () => {
+      setTimeout(() => { if (cajaAgregar.open) document.getElementById("item-nombre").focus(); });
+    });
+
     dibujarChips();
     dibujarLista();
     dibujarRecetas();
