@@ -471,7 +471,7 @@
     }
 
     /* Separación entre los dos botones de cada receta */
-    .receta-botones { display: grid; gap: 12px; margin-top: 8px; }
+    .receta-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }  /* "Editar" y "Borrar" lado a lado */
 
     /* Botones de cada receta: sin relleno, solo con borde */
     .receta-botones .boton {
@@ -1410,9 +1410,8 @@
               ${r.pasos.length ? `<p class="subtitulo">Pasos</p>
                 <ol class="pasos">${r.pasos.map(p => `<li>${escapar(p)}</li>`).join("")}</ol>` : ""}
               <div class="receta-botones">
-                <button class="boton" data-accion="agregar" data-id="${r.id}">🛒 Agregar ingredientes a la lista</button>
-                <button class="boton lila" data-accion="editar" data-id="${r.id}">✏️ Editar receta</button>
-                <button class="boton rosa" data-accion="borrar" data-id="${r.id}">Borrar receta</button>
+                <button class="boton lila" data-accion="editar" data-id="${r.id}">✏️ Editar</button>
+                <button class="boton rosa" data-accion="borrar" data-id="${r.id}">🗑️ Borrar</button>
               </div>
             </div>
           </details>`;
@@ -1426,6 +1425,8 @@
       const receta = recetas.find(r => r.id === boton.dataset.id);
       if (!receta) return;
 
+      // (El botón "Agregar ingredientes a la lista" está quitado por ahora; para volver a mostrarlo,
+      // agrega en dibujarRecetas: <button class="boton" data-accion="agregar" data-id="${r.id}">…</button>)
       if (boton.dataset.accion === "agregar") {
         let agregados = 0;
         receta.ingredientes.forEach(ing => {
