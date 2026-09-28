@@ -282,6 +282,10 @@
       filter: drop-shadow(0 10px 14px rgba(80, 70, 130, .25));
     }
     .fantasma .tile-borrar { display: none; }
+    /* Recetas: la copia flotante se inclina menos (es una tarjeta ancha) */
+    .fantasma-receta { transform: scale(1.02) rotate(1.5deg); background: #fff; }
+    .receta summary { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .receta.origen-receta { opacity: .35; border-style: dashed; }
 
     /* ---------- Títulos de categoría ---------- */
     .grupo-titulo {
@@ -1226,7 +1230,7 @@
       listaMercado.classList.add("arrastrando");
       if (navigator.vibrate) navigator.vibrate(25); // pequeña vibración en Android
       moverArrastre(arrastre.x, arrastre.y);
-      desplazarSolo();
+      desplazarSolo(() => arrastre, moverArrastre);
     }
 
     function moverArrastre(x, y) {
@@ -1254,17 +1258,21 @@
     }
 
     // Si el dedo se acerca al borde de arriba o de abajo, la página se desplaza sola
-    function desplazarSolo() {
-      if (!arrastre?.activo) return;
+    // (Se usa para arrastrar productos y también recetas.)
+    //   obtenerEstado: función que devuelve el arrastre en curso (con .activo, .x, .y)
+    //   mover: función que actualiza la posición mientras la página se desplaza
+    function desplazarSolo(obtenerEstado, mover) {
+      const estado = obtenerEstado();
+      if (!estado?.activo) return;
       const arriba = document.querySelector("header").getBoundingClientRect().bottom + 50;
       const abajo = window.innerHeight - 70;
-      const y = arrastre.y;
+      const y = estado.y;
       const velocidad = y < arriba ? -(arriba - y) / 4 : y > abajo ? (y - abajo) / 4 : 0;
       if (velocidad) {
         window.scrollBy(0, Math.max(-20, Math.min(20, velocidad)));
-        moverArrastre(arrastre.x, arrastre.y);
+        mover(estado.x, estado.y);
       }
-      requestAnimationFrame(desplazarSolo);
+      requestAnimationFrame(() => desplazarSolo(obtenerEstado, mover));
     }
 
     function soltarArrastre() {
@@ -1372,6 +1380,8 @@
     }
 
     function dibujarRecetas() {
+      // Si llega un cambio de otro dispositivo mientras se arrastra una receta, se dibuja al soltar
+      if (arrastreReceta?.activo) return;
       const contenedor = document.getElementById("lista-recetas");
       // Recordar qué recetas estaban abiertas, para que no se cierren
       // cuando llega un cambio desde otro dispositivo
@@ -1417,6 +1427,123 @@
           </details>`;
       }).join("");
     }
+
+    /* ---------------------------------------------------------
+       ARRASTRAR Y SOLTAR RECETAS (para cambiar el orden)
+       Igual que con los productos: en el celular se mantiene presionado el encabezado
+       de la receta y luego se arrastra; con mouse, clic y arrastrar.
+       Un toque normal sigue abriendo o cerrando la receta.
+       --------------------------------------------------------- */
+    const listaRecetas = document.getElementById("lista-recetas");
+    let arrastreReceta = null;
+    let ignorarClickReceta = false;
+
+    function prepararArrastreReceta(tarjeta, x, y, esToque) {
+      arrastreReceta = { tarjeta, x0: x, y0: y, x, y, activo: false };
+      if (esToque) arrastreReceta.temporizador = setTimeout(activarArrastreReceta, ESPERA_TOQUE);
+    }
+
+    function cancelarArrastreReceta() {
+      if (arrastreReceta) clearTimeout(arrastreReceta.temporizador);
+      arrastreReceta = null;
+    }
+
+    function activarArrastreReceta() {
+      const { tarjeta } = arrastreReceta;
+      tarjeta.open = false; // se cierra para que sea fácil de mover
+      const r = tarjeta.getBoundingClientRect();
+      arrastreReceta.activo = true;
+      arrastreReceta.dx = arrastreReceta.x - r.left;
+      arrastreReceta.dy = Math.min(arrastreReceta.y - r.top, r.height - 10);
+
+      // Copia flotante que sigue el dedo / mouse
+      const fantasma = tarjeta.cloneNode(true);
+      fantasma.classList.add("fantasma", "fantasma-receta");
+      fantasma.style.width = r.width + "px";
+      document.body.appendChild(fantasma);
+      arrastreReceta.fantasma = fantasma;
+
+      tarjeta.classList.add("origen-receta");
+      if (navigator.vibrate) navigator.vibrate(25);
+      moverArrastreReceta(arrastreReceta.x, arrastreReceta.y);
+      desplazarSolo(() => arrastreReceta, moverArrastreReceta);
+    }
+
+    function moverArrastreReceta(x, y) {
+      const a = arrastreReceta;
+      a.x = x;
+      a.y = y;
+      a.fantasma.style.left = (x - a.dx) + "px";
+      a.fantasma.style.top = (y - a.dy) + "px";
+
+      // Si el dedo está sobre otra receta, poner la receta antes o después según la mitad
+      const sobre = document.elementFromPoint(x, y)?.closest(".receta");
+      if (!sobre || sobre === a.tarjeta || !listaRecetas.contains(sobre)) return;
+      const r = sobre.getBoundingClientRect();
+      listaRecetas.insertBefore(a.tarjeta, y < r.top + r.height / 2 ? sobre : sobre.nextSibling);
+    }
+
+    function soltarArrastreReceta() {
+      arrastreReceta.fantasma.remove();
+      arrastreReceta = null;
+      ignorarClickReceta = true;
+      setTimeout(() => { ignorarClickReceta = false; }, 300);
+
+      // Guardar el nuevo orden según como quedaron las tarjetas en la pantalla
+      const orden = [...listaRecetas.querySelectorAll(".receta")].map(t => t.dataset.id);
+      const posicion = id => { const p = orden.indexOf(id); return p < 0 ? Infinity : p; };
+      recetas.sort((a, b) => posicion(a.id) - posicion(b.id));
+      guardar(CLAVE_RECETAS, recetas);
+      dibujarRecetas(); // también muestra cambios que llegaron de otro dispositivo durante el arrastre
+    }
+
+    // Que el "click" justo después de soltar no abra ni cierre la receta
+    listaRecetas.addEventListener("click", e => {
+      if (ignorarClickReceta) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+
+    // --- Celular (toque): se arrastra desde el encabezado de la receta ---
+    listaRecetas.addEventListener("touchstart", e => {
+      const encabezado = e.target.closest(".receta summary");
+      if (!encabezado || e.touches.length > 1) return;
+      prepararArrastreReceta(encabezado.parentNode, e.touches[0].clientX, e.touches[0].clientY, true);
+    }, { passive: true });
+
+    document.addEventListener("touchmove", e => {
+      if (!arrastreReceta) return;
+      const t = e.touches[0];
+      if (!arrastreReceta.activo) {
+        if (Math.hypot(t.clientX - arrastreReceta.x0, t.clientY - arrastreReceta.y0) > 10) cancelarArrastreReceta();
+        return;
+      }
+      e.preventDefault(); // no hacer scroll mientras se arrastra
+      moverArrastreReceta(t.clientX, t.clientY);
+    }, { passive: false });
+
+    const finToqueReceta = () => { if (arrastreReceta?.activo) soltarArrastreReceta(); else cancelarArrastreReceta(); };
+    document.addEventListener("touchend", finToqueReceta);
+    document.addEventListener("touchcancel", finToqueReceta);
+    listaRecetas.addEventListener("contextmenu", e => { if (e.target.closest(".receta summary")) e.preventDefault(); });
+
+    // --- Computador (mouse) ---
+    listaRecetas.addEventListener("mousedown", e => {
+      const encabezado = e.target.closest(".receta summary");
+      if (e.button !== 0 || !encabezado) return;
+      prepararArrastreReceta(encabezado.parentNode, e.clientX, e.clientY, false);
+    });
+
+    document.addEventListener("mousemove", e => {
+      if (!arrastreReceta) return;
+      if (!arrastreReceta.activo) {
+        if (Math.hypot(e.clientX - arrastreReceta.x0, e.clientY - arrastreReceta.y0) < 6) return;
+        arrastreReceta.x = e.clientX;
+        arrastreReceta.y = e.clientY;
+        activarArrastreReceta();
+      }
+      moverArrastreReceta(e.clientX, e.clientY);
+    });
+
+    document.addEventListener("mouseup", () => { if (arrastreReceta?.activo) soltarArrastreReceta(); else cancelarArrastreReceta(); });
 
     // Botones dentro de cada receta
     document.getElementById("lista-recetas").addEventListener("click", e => {
