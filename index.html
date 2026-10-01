@@ -28,7 +28,7 @@
       --fondo: #ffffff;           /* fondo de la página */
       --texto: #3b3a4a;           /* texto principal */
       --texto-suave: #9a98aa;     /* texto secundario */
-      --ancho: 520px;             /* ancho de TODOS los bloques */
+      --ancho: 960px;             /* ancho máximo de TODOS los bloques (en el celular ocupan toda la pantalla) */
       --redondo: 24px;            /* esquinas de tarjetas */
       --redondo-chico: 18px;      /* esquinas de campos y botones */
       --toque: 52px;              /* alto mínimo de botones (fácil de tocar) */
@@ -560,7 +560,7 @@
       left: 50%;
       bottom: calc(24px + env(safe-area-inset-bottom, 0px));
       transform: translateX(-50%) translateY(20px);
-      width: min(calc(100% - 32px), var(--ancho));
+      width: min(calc(100% - 32px), 520px);
       padding: 14px 20px;
       border-radius: var(--redondo);
       background: #fff;
@@ -574,6 +574,20 @@
       transition: opacity .2s, transform .2s;
     }
     .aviso.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ---------- Pantallas más grandes (tablet y computador) ----------
+       En el celular no cambia nada. En pantallas anchas los bloques ocupan más espacio
+       (hasta --ancho) y caben más productos por fila en vez de hacerse enormes. */
+    @media (min-width: 700px) {
+      .grilla { grid-template-columns: repeat(8, 1fr); gap: 18px 12px; }
+      .tile-img { font-size: 40px; border-radius: 20px; }
+      .tile-nombre { font-size: 13px; }
+      .chips { grid-template-columns: repeat(3, 1fr); }
+      .emojis { grid-template-columns: repeat(10, 1fr); }
+    }
+    @media (min-width: 1000px) {
+      .grilla { grid-template-columns: repeat(10, 1fr); }
+    }
 
     [hidden] { display: none !important; }
   </style>
