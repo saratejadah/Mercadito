@@ -1059,24 +1059,30 @@
     }
 
     // --- Filtros por categoría ---
-    let filtro = "Todos"; // "Todos" o el nombre de una categoría
+    const FILTRO_COMPRADOS = "Comprados";
+    let filtro = "Todos"; // "Todos", "Comprados" o el nombre de una categoría
 
     // Dibuja las pastillas de filtro: "Todos" + cada categoría que tenga productos.
     // El número es cuántos faltan por comprar.
     function dibujarFiltros() {
       const contenedor = document.getElementById("filtros");
       const conProductos = CATEGORIAS.filter(c => lista.some(i => infoCategoria(i.categoria) === c));
+      const cuantosComprados = lista.filter(i => i.comprado).length;
 
-      // Si la categoría filtrada se quedó sin productos, volver a "Todos"
-      if (filtro !== "Todos" && !conProductos.some(c => c.nombre === filtro)) filtro = "Todos";
+      // Si el filtro elegido se quedó sin productos, volver a "Todos"
+      const sigueValido = filtro === "Todos"
+        || (filtro === FILTRO_COMPRADOS ? cuantosComprados > 0 : conProductos.some(c => c.nombre === filtro));
+      if (!sigueValido) filtro = "Todos";
 
-      // Solo tiene sentido filtrar si hay más de una categoría
-      contenedor.hidden = conProductos.length < 2;
+      // Solo tiene sentido filtrar si hay más de una categoría o hay productos comprados
+      contenedor.hidden = conProductos.length < 2 && cuantosComprados === 0;
 
       const pendientesDe = cat => lista.filter(i => !i.comprado && (!cat || infoCategoria(i.categoria) === cat)).length;
       const opciones = [
         { nombre: "Todos", emoji: "✨", color: "#dcecff", cuenta: pendientesDe(null) },
-        ...conProductos.map(c => ({ ...c, cuenta: pendientesDe(c) }))
+        ...conProductos.map(c => ({ ...c, cuenta: pendientesDe(c) })),
+        // Al final: los que ya se compraron (solo si hay alguno)
+        ...(cuantosComprados ? [{ nombre: FILTRO_COMPRADOS, emoji: "✅", color: "#d9f5e1", cuenta: cuantosComprados }] : [])
       ];
       contenedor.innerHTML = opciones.map(o => `
         <button type="button" class="filtro ${o.nombre === filtro ? "activa" : ""}" style="--color:${o.color}"
@@ -1099,7 +1105,9 @@
       dibujarFiltros();
       const contenedor = document.getElementById("lista-mercado");
       // Con un filtro activo, solo se muestran productos de esa categoría
-      const visibles = lista.filter(i => filtro === "Todos" || infoCategoria(i.categoria).nombre === filtro);
+      const visibles = lista.filter(i =>
+        filtro === "Todos" ||
+        (filtro === FILTRO_COMPRADOS ? i.comprado : infoCategoria(i.categoria).nombre === filtro));
       const pendientes = visibles.filter(i => !i.comprado);
       const comprados = lista.filter(i => i.comprado);
       const compradosVisibles = visibles.filter(i => i.comprado);
