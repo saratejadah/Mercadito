@@ -1093,10 +1093,10 @@
 
       const pendientesDe = cat => lista.filter(i => !i.comprado && (!cat || infoCategoria(i.categoria) === cat)).length;
       const opciones = [
+        // De primero: los que ya se compraron (solo si hay alguno)
+        ...(cuantosComprados ? [{ nombre: FILTRO_COMPRADOS, emoji: "✅", color: "#d9f5e1", cuenta: cuantosComprados }] : []),
         { nombre: "Todos", emoji: "✨", color: "#dcecff", cuenta: pendientesDe(null) },
-        ...conProductos.map(c => ({ ...c, cuenta: pendientesDe(c) })),
-        // Al final: los que ya se compraron (solo si hay alguno)
-        ...(cuantosComprados ? [{ nombre: FILTRO_COMPRADOS, emoji: "✅", color: "#d9f5e1", cuenta: cuantosComprados }] : [])
+        ...conProductos.map(c => ({ ...c, cuenta: pendientesDe(c) }))
       ];
       contenedor.innerHTML = opciones.map(o => `
         <button type="button" class="filtro ${o.nombre === filtro ? "activa" : ""}" style="--color:${o.color}"
